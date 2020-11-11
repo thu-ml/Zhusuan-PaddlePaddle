@@ -1,0 +1,10 @@
+.http.log
+*.log
+examples/data/*
+examples/result/*
+.idea/*
+
+__pycache__/*
+*/__pycache__/*
+
+model/*
