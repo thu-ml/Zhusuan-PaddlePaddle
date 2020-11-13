@@ -21,10 +21,11 @@ class ELBO(paddle.nn.Layer):
         return log_joint_
 
     def forward(self, x):
+        batch_len = x.shape[0]
         nodes_q = self.variational({'x': x})
         z, logqz = nodes_q['z']
         nodes_p = self.generator({'x': x, 'z': z})
         logpxz = self.log_joint(nodes_p)
-        elbo = fluid.layers.reduce_mean(logpxz - logqz)
+        elbo = fluid.layers.reduce_mean(logpxz - logqz)/batch_len
         return -elbo
 

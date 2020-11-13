@@ -17,7 +17,6 @@ from paddle.nn import functional as F
 from zhusuan.framework.bn import BayesianNet
 from zhusuan.variational.elbo import ELBO
 
-
 from utils import load_mnist_realval, save_img
 
 device = paddle.set_device('gpu') # or 'gpu'
@@ -46,8 +45,9 @@ class Generator(BayesianNet):
 
     def forward(self, observed):
         # Check mark, mean, std, shape
-        sd = fluid.layers.ones(shape=(self.batch_size, self.z_dim), dtype='float32')
-        mean = fluid.layers.zeros(shape=(self.batch_size, self.z_dim), dtype='float32')
+        batch_len = observed['z'].shape[0]
+        sd = fluid.layers.ones(shape=(batch_len, self.z_dim), dtype='float32')
+        mean = fluid.layers.zeros(shape=(batch_len, self.z_dim), dtype='float32')
 
         nodes = {}
         nodes = self.Normal('z', mean=mean,
@@ -59,14 +59,8 @@ class Generator(BayesianNet):
         x_logits = self.act2(self.fc2_(self.act1(self.fc1(z))))
 
         nodes['x_mean'] = (x_logits, 0,)
-
-        #x_mean = self.fc3(x_logits)
-        #x_sd = paddle.exp(self.fc4(x_logits))
-        #nodes =self.Normal('x', mean=x_mean, std=x_sd, shape=(()), \
-        #                   observation=observed, nodes=nodes, reparameterize = True)
-
-        nodes = self.Bernoulli('x', shape=(()), observation=observed, nodes=nodes, probs=x_logits)
-
+        nodes = self.Bernoulli('x', shape=(()), observation=observed,
+                               nodes=nodes, probs=x_logits)
         return nodes
 
 
@@ -129,11 +123,11 @@ class MyDataset(Dataset):
 
 def main():
 
-    epoch_size = 6
-    batch_size = 32
+    epoch_size = 101 #3000
+    batch_size = 128
 
     # Define model parameters
-    z_dim = 30
+    z_dim = 40
     x_dim = 28*28
 
     # create the network
@@ -157,17 +151,17 @@ def main():
               eval_data=MyDataset(mode='valid'), #test_dataset,  #MyDataset(mode='valid'),
               batch_size=batch_size,
               epochs=epoch_size,
-              eval_freq=5,
+              eval_freq=10,
               save_dir='../model/',
-              save_freq=1,
-              verbose=2,
+              save_freq=10,
+              verbose=1,
               shuffle=True,
               num_workers=0,
               callbacks=None)
 
     # Model test
     test_data = MyDataset(mode='test')
-    batch_x = test_data.data[0:32]
+    batch_x = test_data.data[0:batch_size]
 
     # print(len(model.parameters()))
     # params_info = model.summary()
@@ -186,8 +180,6 @@ def main():
 
     # plt.figure(0)
     # cv2.imshow('input',batch_x[0])
-    print([np.max(batch_x[0]),np.min(batch_x[0])])
-    print([np.max(sample[0]),np.min(sample[0])])
 
     result_fold = 'result'
     if not os.path.isdir(result_fold):

@@ -54,7 +54,7 @@ class BayesianNet(paddle.nn.Layer):
         c = -0.5 * np.log(2 * np.pi)
         precision = paddle.exp(-2 * logstd)
         # print([sample.shape, mean.shape, logstd.shape, precision.shape])
-        log_prob_sample = c - 0.5 * logstd - 0.5 * precision * paddle.square(sample - mean)
+        log_prob_sample = c - logstd - 0.5 * precision * paddle.square(sample - mean)
 
         log_prob = fluid.layers.reduce_sum(log_prob_sample, dim=1)
         # log_prob = self.reduce_sum(self.normal_dist('log_prob', sample, mean, std), 1)

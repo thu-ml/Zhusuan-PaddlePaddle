@@ -95,9 +95,12 @@ def load_mnist_realval(path, one_hot=True, dequantify=False):
     else:
         train_set, valid_set, test_set = pickle.load(f, encoding='latin1')
     f.close()
-    x_train, t_train = train_set[0][:64*500], train_set[1][:64*500]
-    x_valid, t_valid = valid_set[0][:64*50], valid_set[1][:64*50]
-    x_test, t_test = test_set[0][:64*10], test_set[1][:64*10]
+    x_train, t_train = train_set[0], train_set[1]
+    x_valid, t_valid = valid_set[0], valid_set[1]
+    x_test, t_test = test_set[0], test_set[1]
+    # x_train, t_train = train_set[0][:64*500], train_set[1][:64*500]
+    # x_valid, t_valid = valid_set[0][:64*50], valid_set[1][:64*50]
+    # x_test, t_test = test_set[0][:64*10], test_set[1][:64*10]
     if dequantify:
         x_train += np.random.uniform(0, 1. / 256,
                                      size=x_train.shape).astype('float32')
