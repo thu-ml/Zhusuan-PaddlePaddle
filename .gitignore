@@ -12,3 +12,4 @@ model/*
 *.pyc
 *.swp
 *.swc
+*.swo

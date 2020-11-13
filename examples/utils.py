@@ -95,9 +95,9 @@ def load_mnist_realval(path, one_hot=True, dequantify=False):
     else:
         train_set, valid_set, test_set = pickle.load(f, encoding='latin1')
     f.close()
-    x_train, t_train = train_set[0], train_set[1]
-    x_valid, t_valid = valid_set[0], valid_set[1]
-    x_test, t_test = test_set[0], test_set[1]
+    x_train, t_train = train_set[0][:64*500], train_set[1][:64*500]
+    x_valid, t_valid = valid_set[0][:64*50], valid_set[1][:64*50]
+    x_test, t_test = test_set[0][:64*10], test_set[1][:64*10]
     if dequantify:
         x_train += np.random.uniform(0, 1. / 256,
                                      size=x_train.shape).astype('float32')
@@ -109,4 +109,31 @@ def load_mnist_realval(path, one_hot=True, dequantify=False):
     t_transform = (lambda x: to_one_hot(x, n_y)) if one_hot else (lambda x: x)
     return x_train, t_transform(t_train), x_valid, t_transform(t_valid), \
         x_test, t_transform(t_test)
+
+
+def save_img(data, name):
+    """
+    Visualize data and save to target files
+    Args:
+        data: nparray of size (num, size, size)
+        name: ouput file name
+        size: image size
+        num: number of images
+    """
+
+    size = int(data.shape[1]**.5)
+    num = data.shape[0]
+    col = int(num / 8)
+    row = 8
+
+    imgs = Image.new('L', (size*col, size*row))
+    for i in range(num):
+        j = i/8
+        img_data = data[i]
+        img_data  = np.resize(img_data, (size, size))
+        img_data = img_data * 255
+        img_data = img_data.astype(np.uint8)
+        im = Image.fromarray(img_data, 'L')
+        imgs.paste(im, (int(j) * size , (i % 8) * size))
+    imgs.save(name)
 

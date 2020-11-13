@@ -1,5 +1,3 @@
-
-
 """ ELBO """
 
 import paddle
@@ -14,8 +12,12 @@ class ELBO(paddle.nn.Layer):
     def log_joint(self, nodes):
         log_joint_ = 0.
         for n_name in nodes.keys():
-            for node in nodes[n_name]:
-                log_joint_ += fluid.layers.reduce_sum(node, dim=-1)
+            ### TODO
+            if not n_name == 'x_mean':
+                log_joint_ += fluid.layers.reduce_sum(nodes[n_name][1], dim=-1)
+                #for node in nodes[n_name]:
+                #    print(node)
+                #    log_joint_ += fluid.layers.reduce_sum(node, dim=-1)
         return log_joint_
 
     def forward(self, x):

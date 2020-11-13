@@ -42,7 +42,8 @@ class BayesianNet(paddle.nn.Layer):
                 # epsilon = self.normal_dist('sample', shape, self.zeros(mean.shape), self.ones(std.shape))
                 # sample = mean + std * epsilon
             else:
-                sample = paddle.normal(name='sample', shape=fluid.layers.shape(std), mean=0.0, std=1.0) * std + mean
+                sample = paddle.normal(name='sample', \
+                                       shape=fluid.layers.shape(std), mean=0.0, std=1.0) * std + mean
                 # sample = fluid.layers.gaussian_random(name='sample', shape=fluid.layers.shape(std)) * std + mean
                 # sample = self.normal_dist('sample', shape, mean, std)
         # else:
@@ -53,11 +54,14 @@ class BayesianNet(paddle.nn.Layer):
         c = -0.5 * np.log(2 * np.pi)
         precision = paddle.exp(-2 * logstd)
         # print([sample.shape, mean.shape, logstd.shape, precision.shape])
-        log_prob_sample = c - logstd - 0.5 * precision * paddle.square(sample - mean)
+        log_prob_sample = c - 0.5 * logstd - 0.5 * precision * paddle.square(sample - mean)
 
-        log_prob = paddle.reduce_sum(log_prob_sample, dim=1)
+        log_prob = fluid.layers.reduce_sum(log_prob_sample, dim=1)
         # log_prob = self.reduce_sum(self.normal_dist('log_prob', sample, mean, std), 1)
         nodes[name] = (sample, log_prob)
+        #print('sample shape:' , sample.shape)
+        #print('log_prob shape:' , log_prob.shape)
+        assert([sample.shape[0]] == log_prob.shape)
         return nodes #sample, log_prob
 
     def Bernoulli(self,
@@ -77,6 +81,7 @@ class BayesianNet(paddle.nn.Layer):
         assert not dtype is None
 
 
+        #print(observation.keys())
         if name in observation.keys():
             sample = observation[name]
         else:
@@ -88,9 +93,16 @@ class BayesianNet(paddle.nn.Layer):
 
         ## Log Prob
         # print(sample.keys())
-        log_prob_sample = -fluid.layers.sigmoid_cross_entropy_with_logits(label=probs, x=sample) # check mark
-        log_prob = paddle.reduce_sum(log_prob_sample, dim=1)
+        #log_prob_sample = -fluid.layers.sigmoid_cross_entropy_with_logits(label=probs, x=sample) # check mark
+
+        log_prob_sample = -fluid.layers.sigmoid_cross_entropy_with_logits(label=sample, x=probs) # check mark
+
+        log_prob = fluid.layers.reduce_sum(log_prob_sample, dim=1)
         # log_prob = self.reduce_sum(self.bernoulli_dist('log_prob', sample, probs), 1)
+
         nodes[name] = (sample, log_prob)
+        #print('sample shape:' , sample.shape)
+        #print('log_prob shape:' , log_prob.shape)
+        assert([sample.shape[0]] == log_prob.shape)
         return nodes #sample, log_prob
 
