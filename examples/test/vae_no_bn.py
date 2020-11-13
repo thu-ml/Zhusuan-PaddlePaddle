@@ -1,5 +1,3 @@
-
-
 import paddle
 import paddle.fluid as fluid
 import os
@@ -12,7 +10,7 @@ from six.moves import urllib, range
 from six.moves import cPickle as pickle
 from PIL import Image
 from matplotlib import pyplot as plt
-
+from utils import load_mnist_realval
 
 device = paddle.set_device('gpu') # or 'gpu'
 paddle.disable_static(device)
@@ -21,103 +19,6 @@ pbar = None
 examples_dir = os.path.dirname(os.path.abspath(__file__))
 data_dir = os.path.join(examples_dir, "data")
 
-def show_progress(block_num, block_size, total_size):
-    global pbar
-    if pbar is None:
-        if total_size > 0:
-            prefixes = ('', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi', 'Yi')
-            power = min(int(math.log(total_size, 2) / 10), len(prefixes) - 1)
-            scaled = float(total_size) / (2 ** (10 * power))
-            total_size_str = '{:.1f} {}B'.format(scaled, prefixes[power])
-            try:
-                marker = '█'
-            except UnicodeEncodeError:
-                marker = '*'
-            widgets = [
-                progressbar.Percentage(),
-                ' ', progressbar.DataSize(),
-                ' / ', total_size_str,
-                ' ', progressbar.Bar(marker=marker),
-                ' ', progressbar.ETA(),
-                ' ', progressbar.AdaptiveTransferSpeed(),
-            ]
-            pbar = progressbar.ProgressBar(widgets=widgets,
-                                           max_value=total_size)
-        else:
-            widgets = [
-                progressbar.DataSize(),
-                ' ', progressbar.Bar(marker=progressbar.RotatingMarker()),
-                ' ', progressbar.Timer(),
-                ' ', progressbar.AdaptiveTransferSpeed(),
-            ]
-            pbar = progressbar.ProgressBar(widgets=widgets,
-                                           max_value=progressbar.UnknownLength)
-
-    downloaded = block_num * block_size
-    if downloaded < total_size:
-        pbar.update(downloaded)
-    else:
-        pbar.finish()
-        pbar = None
-
-def download_dataset(url, path):
-    print('Downloading data from %s' % url)
-    urllib.request.urlretrieve(url, path, show_progress)
-
-def to_one_hot(x, depth):
-    """
-    Get one-hot representation of a 1-D numpy array of integers.
-
-    :param x: 1-D Numpy array of type int.
-    :param depth: A int.
-
-    :return: 2-D Numpy array of type int.
-    """
-    ret = np.zeros((x.shape[0], depth))
-    ret[np.arange(x.shape[0]), x] = 1
-    return ret
-
-def load_mnist_realval(path, one_hot=True, dequantify=False):
-    """
-    Loads the real valued MNIST dataset.
-
-    :param path: Path to the dataset file.
-    :param one_hot: Whether to use one-hot representation for the labels.
-    :param dequantify:  Whether to add uniform noise to dequantify the data
-        following (Uria, 2013).
-
-    :return: The MNIST dataset.
-    """
-    if not os.path.isfile(path):
-        data_dir = os.path.dirname(path)
-        if not os.path.exists(os.path.dirname(path)):
-            os.makedirs(data_dir)
-        download_dataset('http://www.iro.umontreal.ca/~lisa/deep/data/mnist'
-                         '/mnist.pkl.gz', path)
-
-    f = gzip.open(path, 'rb')
-    if six.PY2:
-        train_set, valid_set, test_set = pickle.load(f)
-    else:
-        train_set, valid_set, test_set = pickle.load(f, encoding='latin1')
-    f.close()
-    x_train, t_train = train_set[0], train_set[1]
-    x_valid, t_valid = valid_set[0], valid_set[1]
-    x_test, t_test = test_set[0], test_set[1]
-    if dequantify:
-        x_train += np.random.uniform(0, 1. / 256,
-                                     size=x_train.shape).astype('float32')
-        x_valid += np.random.uniform(0, 1. / 256,
-                                     size=x_valid.shape).astype('float32')
-        x_test += np.random.uniform(0, 1. / 256,
-                                    size=x_test.shape).astype('float32')
-    n_y = t_train.max() + 1
-    t_transform = (lambda x: to_one_hot(x, n_y)) if one_hot else (lambda x: x)
-    return x_train, t_transform(t_train), x_valid, t_transform(t_valid), \
-        x_test, t_transform(t_test)
-
-
-
 # 模型参数设定
 new_im = Image.new('L', (280, 280))
 image_size = 28*28
@@ -125,13 +26,7 @@ h_dim = 512
 z_dim = 20 #20
 num_epochs = 500
 batch_size = 512
-learning_rate = 1e-2
-
-
-
-
-
-
+learning_rate = 1e-3
 
 class VAE(paddle.nn.Layer):
     def __init__(self):
@@ -145,6 +40,7 @@ class VAE(paddle.nn.Layer):
         self.fc2 = paddle.nn.Linear(z_dim, z_dim)
         self.act2 = paddle.nn.ReLU()
         self.fc3 = paddle.nn.Linear(z_dim, z_dim)
+
         # # sampled z => h
         self.fc4 = paddle.nn.Linear(z_dim, h_dim)
         # # h => image
@@ -152,7 +48,7 @@ class VAE(paddle.nn.Layer):
         self.sigmoid = paddle.nn.Sigmoid()
 
     def encode(self, x):
-        h = self.act1(self.fc1(  self.fc0(x)  ))
+        h = self.act1(self.fc1(self.fc0(x)))
         # mu, log_variance
         return self.fc2(h), self.fc3(h)
 
@@ -181,7 +77,6 @@ class VAE(paddle.nn.Layer):
 
         return x_reconstructed_logits, mu, log_var
 
-
 def main():
     # 加载MINIST数据集
     data_path = os.path.join(data_dir, "mnist.pkl.gz")
@@ -189,7 +84,9 @@ def main():
 
     model = VAE()
     clip = fluid.clip.GradientClipByNorm(clip_norm=1.0)
-    optimizer = paddle.optimizer.Adam(learning_rate=learning_rate, parameters=model.parameters(), grad_clip = clip)
+    optimizer = paddle.optimizer.Adam(learning_rate=learning_rate, 
+                                      parameters=model.parameters(), 
+                                      grad_clip = clip)
 
     # 数据预处理
     num_batches = x_train.shape[0] // batch_size
@@ -202,14 +99,18 @@ def main():
 
             # VAE前向计算
             x_reconstruction_logits, mu, log_var = model.forward(x)
+
             # 损失函数：计算重构与输入之间的sigmoid交叉熵
+            # TODO
             reconstruction_loss = fluid.layers.sigmoid_cross_entropy_with_logits(label=x, x=x_reconstruction_logits)
-            reconstruction_loss = paddle.reduce_sum(input=reconstruction_loss) / batch_size
+            reconstruction_loss = fluid.layers.reduce_sum(input=reconstruction_loss) / batch_size
             # 计算两个高斯分布之间的散度KL 未知的为第一个高斯分布 已知N为(0,1)的分布为第二个
-            kl_div = - 0.5 * paddle.reduce_sum(1. + log_var - paddle.square(mu) - paddle.exp(log_var), dim=-1)
-            kl_div = paddle.reduce_mean(kl_div)
+            kl_div = - 0.5 * fluid.layers.reduce_sum(1. + log_var - paddle.square(mu) - paddle.exp(log_var), dim=-1)
+            kl_div = fluid.layers.reduce_mean(kl_div)
+
             # 损失=重构误差+分布误差
-            loss = paddle.reduce_mean(reconstruction_loss) + kl_div
+            loss = fluid.layers.reduce_mean(reconstruction_loss) + kl_div
+
             loss.backward()
             optimizer.step()
             optimizer.clear_grad()
