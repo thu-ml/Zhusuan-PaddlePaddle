@@ -123,7 +123,7 @@ class MyDataset(Dataset):
 
 def main():
 
-    epoch_size = 101 #3000
+    epoch_size = 3000 #3000
     batch_size = 128
 
     # Define model parameters
