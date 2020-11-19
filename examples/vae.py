@@ -36,16 +36,18 @@ class Generator(BayesianNet):
         self.fc1 = paddle.nn.Linear(z_dim, 500)
         self.act1 = paddle.nn.ReLU()
         self.fc2 = paddle.nn.Linear(500, 500)
-        self.act2 = paddle.nn.Sigmoid()
+        self.act2 = paddle.nn.ReLU()
 
         self.fc2_ = paddle.nn.Linear(500, 28*28)
-
-        self.fc3 = paddle.nn.Linear(500, x_dim)
-        self.fc4 = paddle.nn.Linear(500, x_dim)
+        self.act2_ = paddle.nn.Sigmoid()
 
     def forward(self, observed):
         # Check mark, mean, std, shape
-        batch_len = observed['z'].shape[0]
+        try:
+            batch_len = observed['z'].shape[0]
+        except:
+            batch_len = 64
+
         sd = fluid.layers.ones(shape=(batch_len, self.z_dim), dtype='float32')
         mean = fluid.layers.zeros(shape=(batch_len, self.z_dim), dtype='float32')
 
@@ -56,11 +58,11 @@ class Generator(BayesianNet):
                             nodes=nodes, reparameterize=False)
 
         z = nodes['z'][0]
-        x_logits = self.act2(self.fc2_(self.act1(self.fc1(z))))
+        x_probs = self.act2_(self.fc2_(self.act2(self.fc2(self.act1(self.fc1(z)))))) + 1e-8
 
-        nodes['x_mean'] = (x_logits, 0,)
+        nodes['x_mean'] = (x_probs, 0,)
         nodes = self.Bernoulli('x', shape=(()), observation=observed,
-                               nodes=nodes, probs=x_logits)
+                               nodes=nodes, probs=x_probs)
         return nodes
 
 
@@ -74,6 +76,7 @@ class Variational(BayesianNet):
         self.act1 = paddle.nn.ReLU()
         self.fc2 = paddle.nn.Linear(500, 500)
         self.act2 = paddle.nn.ReLU()
+
         self.fc3 = paddle.nn.Linear(500, z_dim)
         self.fc4 = paddle.nn.Linear(500, z_dim)
 
@@ -123,12 +126,12 @@ class MyDataset(Dataset):
 
 def main():
 
-    epoch_size = 3000 #3000
-    batch_size = 128
+    epoch_size = 200 #3000
+    batch_size = 64
 
     # Define model parameters
     z_dim = 40
-    x_dim = 28*28
+    x_dim = 28*28*1
 
     # create the network
     generator = Generator(x_dim, z_dim, batch_size)
@@ -174,6 +177,7 @@ def main():
     nodes_p = generator({'z': z})
 
     sample = nodes_p['x_mean'][0].numpy()
+
     if not os.path.exists('result'):
         os.mkdir('result')
     print([sample.shape, batch_x.shape])
@@ -181,11 +185,15 @@ def main():
     # plt.figure(0)
     # cv2.imshow('input',batch_x[0])
 
+    sample_gen = generator({})['x_mean'][0].numpy()
+
     result_fold = 'result'
     if not os.path.isdir(result_fold):
         os.mkdir(result_fold)
+
     save_img(batch_x, os.path.join(result_fold, 'origin_x.png' ))
     save_img(sample,  os.path.join(result_fold, 'reconstruct_x.png' ))
+    save_img(sample_gen,  os.path.join(result_fold, 'sample_x.png' ))
 
 
 if __name__ == '__main__':

@@ -94,8 +94,9 @@ class BayesianNet(paddle.nn.Layer):
         ## Log Prob
         # print(sample.keys())
         #log_prob_sample = -fluid.layers.sigmoid_cross_entropy_with_logits(label=probs, x=sample) # check mark
-
-        log_prob_sample = -fluid.layers.sigmoid_cross_entropy_with_logits(label=sample, x=probs) # check mark
+        #logits = paddle.log(probs /(1-probs))
+        #log_prob_sample = -fluid.layers.sigmoid_cross_entropy_with_logits(label=sample, x=logits) # check mark
+        log_prob_sample = sample * paddle.log(probs) + (1 - sample) * paddle.log(1-probs)
 
         log_prob = fluid.layers.reduce_sum(log_prob_sample, dim=1)
         # log_prob = self.reduce_sum(self.bernoulli_dist('log_prob', sample, probs), 1)
