@@ -1,4 +1,5 @@
 """ Bayesian Network """
+
 import numpy as np
 import paddle
 import paddle.fluid as fluid
@@ -91,11 +92,11 @@ class BayesianNet(paddle.nn.Layer):
             sample = paddle.bernoulli(probs)
 
         ## Log Prob
-
         #logits = paddle.log(probs /(1-probs))
         #log_prob_sample = -fluid.layers.sigmoid_cross_entropy_with_logits(label=sample, x=logits) # check mark
 
-        log_prob_sample = sample * paddle.log(probs + 1e-8) + (1 - sample) * paddle.log(1 - probs + 1e-8)
+        log_prob_sample = sample * paddle.log(probs + 1e-8) \
+                            + (1 - sample) * paddle.log(1 - probs + 1e-8)
         log_prob = fluid.layers.reduce_sum(log_prob_sample, dim=1)
 
         self.nodes[name] = (sample, log_prob)
