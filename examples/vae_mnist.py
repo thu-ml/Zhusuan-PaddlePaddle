@@ -96,7 +96,7 @@ class Variational(BayesianNet):
 def main():
 
     # Define model parameters
-    epoch_size = 3
+    epoch_size = 30
     batch_size = 64
 
     z_dim = 40
@@ -138,7 +138,7 @@ def main():
     # eval
     batch_x = x_test[0:batch_size]
     nodes_q = variational({'x': paddle.to_tensor(batch_x)}).nodes
-    z= nodes_q['z'].tensor
+    z = nodes_q['z'].tensor
     cache = generator({'z': z}).cache
     sample = cache['x_mean'][0].numpy()
 
