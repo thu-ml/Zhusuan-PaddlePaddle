@@ -111,7 +111,7 @@ class ReduceMeanLoss(paddle.nn.Layer):
 
 def main():
 
-    epoch_size = 3
+    epoch_size = 30
     batch_size = 64
 
     # Define model parameters
@@ -176,7 +176,9 @@ def main():
             x = paddle.to_tensor(x_train[step*batch_size:min((step+1)*batch_size, len_)])
             x = paddle.reshape(x,[-1, x_dim])
 
-            loss= model(x)
+            ##loss= model(x)
+            loss= model({'x':x})
+
             loss.backward()
             optimizer.step()
             optimizer.clear_grad()
