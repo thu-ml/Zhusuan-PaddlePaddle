@@ -14,6 +14,7 @@ from paddle.io import Dataset
 pbar = None
 examples_dir = os.path.dirname(os.path.abspath(__file__))
 data_dir = os.path.join(examples_dir, "data")
+data_path = os.path.join(data_dir, "mnist.pkl.gz")
 
 def show_progress(block_num, block_size, total_size):
     global pbar
@@ -72,7 +73,7 @@ def to_one_hot(x, depth):
     ret[np.arange(x.shape[0]), x] = 1
     return ret
 
-def load_mnist_realval(path, one_hot=True, dequantify=False):
+def load_mnist_realval(path=data_path, one_hot=True, dequantify=False):
     """
     Loads the real valued MNIST dataset.
 

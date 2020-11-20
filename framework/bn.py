@@ -9,10 +9,11 @@ class BayesianNet(paddle.nn.Layer):
     We currently support 3 types of variables: x = observation, z = latent, y = condition.
     A Bayeisian Network models a generative process for certain varaiables: p(x,z|y) or p(z|x,y) or p(x|z,y)
     """
-    def __init__(self):
+    def __init__(self, observed=None):
         super(BayesianNet, self).__init__()
         self._nodes = {}
         self._cache = {}
+        self._observed = observed if observed else {}
 
     @property
     def nodes(self):
@@ -22,9 +23,17 @@ class BayesianNet(paddle.nn.Layer):
     def cache(self):
         return self._cache
 
+    @property
+    def observed(self):
+        return self._observed
+
+    def observe(self, observed):
+        self._observed = {}
+        for k,v in observed.items():
+            self._observed[k] = v
+
     def Normal(self,
                name,
-               observation=None,
                mean=None,
                std=None,
                seed=0,
@@ -37,8 +46,8 @@ class BayesianNet(paddle.nn.Layer):
         assert not seed is None
         assert not dtype is None
 
-        if name in observation.keys():
-            sample = observation[name]
+        if name in self.observed.keys():
+            sample = self.observed[name]
         else: # sample
             if reparameterize:
                 epsilon = paddle.normal(name='sample', 
@@ -66,7 +75,6 @@ class BayesianNet(paddle.nn.Layer):
 
     def Bernoulli(self,
                   name,
-                  observation=None,
                   probs=None,
                   seed=0,
                   dtype='float32',
@@ -77,8 +85,8 @@ class BayesianNet(paddle.nn.Layer):
         assert not seed is None
         assert not dtype is None
 
-        if name in observation.keys():
-            sample = observation[name]
+        if name in self.observed.keys():
+            sample = self.observed[name]
         else:
             sample = paddle.bernoulli(probs)
 
