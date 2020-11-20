@@ -40,18 +40,22 @@ class Generator(BayesianNet):
         std = fluid.layers.ones(shape=(batch_len, self.z_dim), dtype='float32')
         mean = fluid.layers.zeros(shape=(batch_len, self.z_dim), dtype='float32')
 
-        z = self.Normal('z', mean=mean,
-                            std=std,
-                            shape=(()), 
-                            reparameterize=False)
+        z = self.stochastic_node('Normal',
+                                 name='z', 
+                                 mean=mean,
+                                 std=std,
+                                 shape=(()), 
+                                 reparameterize=False)
+        #print(z)
 
         x_probs = self.act2_(self.fc2_(self.act2(self.fc2(self.act1(self.fc1(z))))))
 
         self.cache['x_mean'] = (x_probs, 0,)
 
-        sample_x = self.Bernoulli(name='x', 
-                                  shape=(()), 
-                                  probs=x_probs)
+        sample_x = self.sn('Bernoulli',
+                           name='x', 
+                           shape=(()), 
+                           probs=x_probs)
 
         assert(sample_x.shape[0] == batch_len)
         return self
@@ -79,11 +83,12 @@ class Variational(BayesianNet):
         z_mean = self.fc3(z_logits)
         z_sd = paddle.exp(self.fc4(z_logits))
 
-        z = self.Normal('z', 
-                        mean=z_mean, 
-                        std=z_sd, 
-                        shape=(()), 
-                        reparameterize=True)
+        z = self.stochastic_node('Normal',
+                                 name='z', 
+                                 mean=z_mean, 
+                                 std=z_sd, 
+                                 shape=(()), 
+                                 reparameterize=True)
         
         assert( z.shape[1] == self.z_dim)
         return self
@@ -91,7 +96,7 @@ class Variational(BayesianNet):
 def main():
 
     # Define model parameters
-    epoch_size = 30
+    epoch_size = 3
     batch_size = 64
 
     z_dim = 40
@@ -133,7 +138,7 @@ def main():
     # eval
     batch_x = x_test[0:batch_size]
     nodes_q = variational({'x': paddle.to_tensor(batch_x)}).nodes
-    z, _ = nodes_q['z']
+    z= nodes_q['z'].tensor
     cache = generator({'z': z}).cache
     sample = cache['x_mean'][0].numpy()
 

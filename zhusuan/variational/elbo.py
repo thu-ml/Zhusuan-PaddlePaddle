@@ -23,7 +23,10 @@ class ELBO(paddle.nn.Layer):
         else:
             log_joint_ = 0.
             for n_name in nodes.keys():
-                log_joint_ += fluid.layers.reduce_mean(nodes[n_name][1], dim=-1)
+                try:
+                    log_joint_ += fluid.layers.reduce_mean(nodes[n_name][1], dim=-1)
+                except:
+                    log_joint_ += fluid.layers.reduce_mean(nodes[n_name].log_prob(), dim=-1)
 
         return log_joint_
 
@@ -32,7 +35,11 @@ class ELBO(paddle.nn.Layer):
         nodes_q = self.variational(observed).nodes
         #print(nodes_q)
 
-        _v_inputs = {k:v[0] for k,v in nodes_q.items()}
+        try:
+            _v_inputs = {k:v[0] for k,v in nodes_q.items()}
+        except:
+            _v_inputs = {k:v.tensor for k,v in nodes_q.items()}
+
         _observed = {**_v_inputs, **observed}
 
         nodes_p = self.generator(_observed).nodes
