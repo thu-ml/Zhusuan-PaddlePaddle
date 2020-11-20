@@ -1,5 +1,3 @@
-
-
 """ Bayesian Network """
 import numpy as np
 import paddle
@@ -13,6 +11,16 @@ class BayesianNet(paddle.nn.Layer):
     """
     def __init__(self):
         super(BayesianNet, self).__init__()
+        self._nodes = {}
+        self._cache = {}
+
+    @property
+    def nodes(self):
+        return self._nodes
+
+    @property
+    def cache(self):
+        return self._nodes
 
     def Normal(self,
                name,
@@ -57,7 +65,7 @@ class BayesianNet(paddle.nn.Layer):
         log_prob_sample = c - logstd - 0.5 * precision * paddle.square(sample - mean)
 
         log_prob = fluid.layers.reduce_sum(log_prob_sample, dim=1)
-        # log_prob = self.reduce_sum(self.normal_dist('log_prob', sample, mean, std), 1)
+        
         nodes[name] = (sample, log_prob)
         #print('sample shape:' , sample.shape)
         #print('log_prob shape:' , log_prob.shape)
@@ -72,14 +80,12 @@ class BayesianNet(paddle.nn.Layer):
                   seed=0,
                   dtype='float32',
                   shape=()):
-
         """ Bernoulli distribution wrapper """
 
         assert not name is None
         assert not nodes is None
         assert not seed is None
         assert not dtype is None
-
 
         #print(observation.keys())
         if name in observation.keys():
@@ -93,17 +99,14 @@ class BayesianNet(paddle.nn.Layer):
 
         ## Log Prob
         # print(sample.keys())
-        #log_prob_sample = -fluid.layers.sigmoid_cross_entropy_with_logits(label=probs, x=sample) # check mark
         #logits = paddle.log(probs /(1-probs))
         #log_prob_sample = -fluid.layers.sigmoid_cross_entropy_with_logits(label=sample, x=logits) # check mark
-        log_prob_sample = sample * paddle.log(probs) + (1 - sample) * paddle.log(1-probs)
+
+        log_prob_sample = sample * paddle.log(probs + 1e-8) + (1 - sample) * paddle.log(1 - probs + 1e-8)
 
         log_prob = fluid.layers.reduce_sum(log_prob_sample, dim=1)
-        # log_prob = self.reduce_sum(self.bernoulli_dist('log_prob', sample, probs), 1)
 
         nodes[name] = (sample, log_prob)
-        #print('sample shape:' , sample.shape)
-        #print('log_prob shape:' , log_prob.shape)
         assert([sample.shape[0]] == log_prob.shape)
         return nodes #sample, log_prob
 

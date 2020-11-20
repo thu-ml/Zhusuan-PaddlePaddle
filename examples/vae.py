@@ -46,7 +46,7 @@ class Generator(BayesianNet):
         try:
             batch_len = observed['z'].shape[0]
         except:
-            batch_len = 64
+            batch_len = 100
 
         sd = fluid.layers.ones(shape=(batch_len, self.z_dim), dtype='float32')
         mean = fluid.layers.zeros(shape=(batch_len, self.z_dim), dtype='float32')
@@ -58,12 +58,15 @@ class Generator(BayesianNet):
                             nodes=nodes, reparameterize=False)
 
         z = nodes['z'][0]
-        x_probs = self.act2_(self.fc2_(self.act2(self.fc2(self.act1(self.fc1(z)))))) + 1e-8
+        x_probs = self.act2_(self.fc2_(self.act2(self.fc2(self.act1(self.fc1(z))))))
 
         nodes['x_mean'] = (x_probs, 0,)
+
+        self.cache['x_mean'] = (x_probs, 0,)
+
         nodes = self.Bernoulli('x', shape=(()), observation=observed,
                                nodes=nodes, probs=x_probs)
-        return nodes
+        return nodes, self
 
 
 class Variational(BayesianNet):
@@ -126,7 +129,7 @@ class MyDataset(Dataset):
 
 def main():
 
-    epoch_size = 200 #3000
+    epoch_size = 3 #3000
     batch_size = 64
 
     # Define model parameters
@@ -174,7 +177,7 @@ def main():
 
     nodes_q = variational({'x': paddle.to_tensor(batch_x)})
     z, _ = nodes_q['z']
-    nodes_p = generator({'z': z})
+    nodes_p, _ = generator({'z': z})
 
     sample = nodes_p['x_mean'][0].numpy()
 
@@ -185,7 +188,8 @@ def main():
     # plt.figure(0)
     # cv2.imshow('input',batch_x[0])
 
-    sample_gen = generator({})['x_mean'][0].numpy()
+    _, net = generator({})
+    sample_gen = net.cache['x_mean'][0].numpy()
 
     result_fold = 'result'
     if not os.path.isdir(result_fold):

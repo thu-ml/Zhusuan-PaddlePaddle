@@ -26,7 +26,7 @@ class ELBO(paddle.nn.Layer):
         nodes_q = self.variational({'x': x})
         #print('nodes_q.keys: ', nodes_q.keys())
         z, logqz = nodes_q['z']
-        nodes_p = self.generator({'x': x, 'z': z})
+        nodes_p, _ = self.generator({'x': x, 'z': z})
         #print('nodes_p.keys: ', nodes_p.keys())
         logpxz = self.log_joint(nodes_p)
         elbo = fluid.layers.reduce_mean(logpxz - logqz)
