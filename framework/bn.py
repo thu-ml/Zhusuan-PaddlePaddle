@@ -20,11 +20,10 @@ class BayesianNet(paddle.nn.Layer):
 
     @property
     def cache(self):
-        return self._nodes
+        return self._cache
 
     def Normal(self,
                name,
-               nodes,
                observation=None,
                mean=None,
                std=None,
@@ -32,49 +31,41 @@ class BayesianNet(paddle.nn.Layer):
                dtype='float32',
                shape=(),
                reparameterize=True):
-
         """ Normal distribution wrapper """
 
         assert not name is None
-        assert not nodes is None
         assert not seed is None
         assert not dtype is None
 
         if name in observation.keys():
             sample = observation[name]
-        else:
-        #if observation is None:
+        else: # sample
             if reparameterize:
-                epsilon = paddle.normal(name='sample', shape=fluid.layers.shape(std), mean=0.0, std=1.0)
+                epsilon = paddle.normal(name='sample', 
+                                        shape=fluid.layers.shape(std), 
+                                        mean=0.0, 
+                                        std=1.0)
                 sample = mean + std * epsilon
-                # epsilon = self.normal_dist('sample', shape, self.zeros(mean.shape), self.ones(std.shape))
-                # sample = mean + std * epsilon
             else:
-                sample = paddle.normal(name='sample', \
-                                       shape=fluid.layers.shape(std), mean=0.0, std=1.0) * std + mean
-                # sample = fluid.layers.gaussian_random(name='sample', shape=fluid.layers.shape(std)) * std + mean
-                # sample = self.normal_dist('sample', shape, mean, std)
-        # else:
-        #     sample = observation
+                sample = paddle.normal(name='sample', 
+                                       shape=fluid.layers.shape(std), 
+                                       mean=mean, 
+                                       std=std)
 
         ## Log Prob
         logstd = paddle.log(std)
         c = -0.5 * np.log(2 * np.pi)
         precision = paddle.exp(-2 * logstd)
-        # print([sample.shape, mean.shape, logstd.shape, precision.shape])
         log_prob_sample = c - logstd - 0.5 * precision * paddle.square(sample - mean)
-
         log_prob = fluid.layers.reduce_sum(log_prob_sample, dim=1)
-        
-        nodes[name] = (sample, log_prob)
-        #print('sample shape:' , sample.shape)
-        #print('log_prob shape:' , log_prob.shape)
+
+        self.nodes[name] = (sample, log_prob)
+
         assert([sample.shape[0]] == log_prob.shape)
-        return nodes #sample, log_prob
+        return sample
 
     def Bernoulli(self,
                   name,
-                  nodes,
                   observation=None,
                   probs=None,
                   seed=0,
@@ -83,30 +74,23 @@ class BayesianNet(paddle.nn.Layer):
         """ Bernoulli distribution wrapper """
 
         assert not name is None
-        assert not nodes is None
         assert not seed is None
         assert not dtype is None
 
-        #print(observation.keys())
         if name in observation.keys():
             sample = observation[name]
         else:
-        # if observation is None:
             sample = paddle.bernoulli(probs)
-            # sample = self.bernoulli_dist('sample', shape, probs)
-        # else:
-        #     sample = observation
 
         ## Log Prob
-        # print(sample.keys())
+
         #logits = paddle.log(probs /(1-probs))
         #log_prob_sample = -fluid.layers.sigmoid_cross_entropy_with_logits(label=sample, x=logits) # check mark
 
         log_prob_sample = sample * paddle.log(probs + 1e-8) + (1 - sample) * paddle.log(1 - probs + 1e-8)
-
         log_prob = fluid.layers.reduce_sum(log_prob_sample, dim=1)
 
-        nodes[name] = (sample, log_prob)
-        assert([sample.shape[0]] == log_prob.shape)
-        return nodes #sample, log_prob
+        self.nodes[name] = (sample, log_prob)
 
+        assert([sample.shape[0]] == log_prob.shape)
+        return sample 

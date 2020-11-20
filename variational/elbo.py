@@ -12,21 +12,15 @@ class ELBO(paddle.nn.Layer):
     def log_joint(self, nodes):
         log_joint_ = 0.
         for n_name in nodes.keys():
-            ### TODO
-            if not n_name == 'x_mean':
-                #log_joint_ += fluid.layers.reduce_sum(nodes[n_name][1], dim=-1)
-                log_joint_ += fluid.layers.reduce_mean(nodes[n_name][1], dim=-1)
-                #for node in nodes[n_name]:
-                #    print(node)
-                #    log_joint_ += fluid.layers.reduce_sum(node, dim=-1)
+            log_joint_ += fluid.layers.reduce_mean(nodes[n_name][1], dim=-1)
         return log_joint_
 
     def forward(self, x):
         batch_len = x.shape[0]
-        nodes_q = self.variational({'x': x})
+        nodes_q = self.variational({'x': x}).nodes
         #print('nodes_q.keys: ', nodes_q.keys())
         z, logqz = nodes_q['z']
-        nodes_p, _ = self.generator({'x': x, 'z': z})
+        nodes_p = self.generator({'x': x, 'z': z}).nodes
         #print('nodes_p.keys: ', nodes_p.keys())
         logpxz = self.log_joint(nodes_p)
         elbo = fluid.layers.reduce_mean(logpxz - logqz)

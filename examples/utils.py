@@ -9,6 +9,7 @@ from six.moves import cPickle as pickle
 from PIL import Image
 from matplotlib import pyplot as plt
 
+from paddle.io import Dataset
 
 pbar = None
 examples_dir = os.path.dirname(os.path.abspath(__file__))
@@ -140,3 +141,25 @@ def save_img(data, name):
         imgs.paste(im, (int(j) * size , (i % 8) * size))
     imgs.save(name)
 
+
+class MNISTDataset(Dataset):
+    def __init__(self, mode='train'):
+        super(MNISTDataset, self).__init__()
+        # Load MNIST
+        data_path = os.path.join(data_dir, "mnist.pkl.gz")
+        x_train, t_train, x_valid, t_valid, x_test, t_test = load_mnist_realval(data_path)
+        if mode == 'train':
+            self.data = x_train
+            self.labels = t_train
+        elif mode == 'test':
+            self.data = x_test
+            self.labels = t_test
+        else:
+            self.data = x_valid
+            self.labels = t_valid
+
+    def __getitem__(self, index):
+        return self.data[index], self.labels[index]
+
+    def __len__(self):
+        return len(self.data)
