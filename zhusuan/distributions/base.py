@@ -3,6 +3,8 @@
 """ Distribution base class """
 
 import paddle
+import paddle.fluid as fluid
+
 
 __all__ = [
     'Distribution',
@@ -89,18 +91,6 @@ class Distribution(object):
                 raise ValueError("group_ndims must be non-negative.")
             self._group_ndims = group_ndims
         else:
-            """
-            group_ndims = tf.convert_to_tensor(group_ndims, tf.int32)
-            _assert_rank_op = tf.assert_rank(
-                group_ndims, 0,
-                message="group_ndims should be a scalar (0-D Tensor).")
-            _assert_nonnegative_op = tf.assert_greater_equal(
-                group_ndims, 0,
-                message="group_ndims must be non-negative.")
-            with tf.control_dependencies([_assert_rank_op,
-                                          _assert_nonnegative_op]):
-                self._group_ndims = tf.identity(group_ndims)
-            """
             pass
 
     @property
@@ -284,12 +274,11 @@ class Distribution(object):
             of ``(... + )batch_shape + value_shape``.
         :return: A Tensor of shape ``(... + )batch_shape[:-group_ndims]``.
         """
-        """
-        given = self._check_input_shape(given)
+
+        #given = self._check_input_shape(given)
         log_p = self._log_prob(given)
-        return tf.reduce_sum(log_p, tf.range(-self._group_ndims, 0))
-        """
-        pass
+        return fluid.layers.reduce_sum(log_p, dim=[i for i in range(-self._group_ndims, 0)])
+
 
     def prob(self, given):
         """

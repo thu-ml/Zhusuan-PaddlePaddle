@@ -9,11 +9,14 @@ class Bernoulli(Distribution):
                  param_dtype='float32',
                  is_continues=False,
                  is_reparameterized=True,
+                 group_ndims=0,
                  **kwargs):
         super(Bernoulli, self).__init__(dtype, 
                              param_dtype, 
                              is_continues,
-                             is_reparameterized)
+                             is_reparameterized,
+                             group_ndims=group_ndims,
+                             **kwargs)
         self.probs = kwargs['probs']
 
 

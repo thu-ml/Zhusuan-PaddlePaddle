@@ -10,11 +10,14 @@ class Normal(Distribution):
                  param_dtype='float32',
                  is_continues=True,
                  is_reparameterized=True,
+                 group_ndims=0,
                  **kwargs):
         super(Normal, self).__init__(dtype, 
                              param_dtype, 
                              is_continues,
-                             is_reparameterized)
+                             is_reparameterized,
+                             group_ndims=group_ndims,
+                             **kwargs)
         self.std = kwargs['std']
         self.mean = kwargs['mean']
 
@@ -32,14 +35,10 @@ class Normal(Distribution):
                                    mean=self.mean,
                                    std=self.std)
         self.sample_cache = sample_
-
-        #self.nodes[name] = (sample, log_prob)
-
         #assert([sample.shape[0]] == log_prob.shape)
         return sample_
 
     def log_prob(self, sample=None):
-
         if sample is None:
             sample = self.sample_cache
 
@@ -51,6 +50,3 @@ class Normal(Distribution):
         log_prob = fluid.layers.reduce_sum(log_prob_sample, dim=1)
 
         return log_prob
-
-
-
