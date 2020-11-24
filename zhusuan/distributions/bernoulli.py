@@ -20,12 +20,12 @@ class Bernoulli(Distribution):
         self.probs = kwargs['probs']
 
 
-    def sample(self, **kwargs): 
+    def _sample(self, **kwargs): 
         sample_ = paddle.bernoulli(self.probs)
         self.sample_cache = sample_
         return sample_
 
-    def log_prob(self, sample=None):
+    def _log_prob(self, sample=None):
 
         if sample is None:
             sample = self.sample_cache

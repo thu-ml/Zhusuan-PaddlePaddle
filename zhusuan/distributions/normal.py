@@ -18,32 +18,57 @@ class Normal(Distribution):
                              is_reparameterized,
                              group_ndims=group_ndims,
                              **kwargs)
-        self.std = kwargs['std']
-        self.mean = kwargs['mean']
+        try:
+            self._std = kwargs['std']
+        except:
+            self._logstd = kwargs['logstd']
+            self._std = paddle.exp(kwargs['logstd'])
+
+        self._mean = kwargs['mean']
+
+    @property
+    def mean(self):
+        """The mean of the Normal distribution."""
+        return self._mean
+
+    @property
+    def logstd(self):
+        """The log standard deviation of the Normal distribution."""
+        try:
+            return self._logstd
+        except:
+            self._logstd = paddle.log(self._std)
+            return self._logstd
 
 
-    def sample(self, **kwargs):
+    @property
+    def std(self):
+        """The standard deviation of the Normal distribution."""
+        return self._std
+
+
+    def _sample(self, **kwargs):
         if self.is_reparameterized:
             epsilon = paddle.normal(name='sample',
-                                    shape=fluid.layers.shape(self.std),
+                                    shape=fluid.layers.shape(self._std),
                                     mean=0.0,
                                     std=1.0)
-            sample_ = self.mean + self.std * epsilon
+            sample_ = self._mean + self._std * epsilon
         else:
             sample_ = paddle.normal(name='sample',
-                                   shape=fluid.layers.shape(self.std),
-                                   mean=self.mean,
-                                   std=self.std)
+                                   shape=fluid.layers.shape(self._std),
+                                   mean=self._mean,
+                                   std=self._std)
         self.sample_cache = sample_
         #assert([sample.shape[0]] == log_prob.shape)
         return sample_
 
-    def log_prob(self, sample=None):
+    def _log_prob(self, sample=None):
         if sample is None:
             sample = self.sample_cache
 
         ## Log Prob
-        logstd = paddle.log(self.std)
+        logstd = paddle.log(self._std)
         c = -0.5 * np.log(2 * np.pi)
         precision = paddle.exp(-2 * logstd)
         log_prob_sample = c - logstd - 0.5 * precision * paddle.square(sample - self.mean)

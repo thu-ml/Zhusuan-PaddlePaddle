@@ -96,7 +96,7 @@ class Variational(BayesianNet):
 def main():
 
     # Define model parameters
-    epoch_size = 30
+    epoch_size = 10
     batch_size = 64
 
     z_dim = 40

@@ -235,7 +235,9 @@ class Distribution(object):
                 samples = self._sample(n_samples)
             return samples
         """
-        pass
+        samples = self._sample()
+        return samples
+
 
     def _sample(self, n_samples):
         """
@@ -277,33 +279,15 @@ class Distribution(object):
 
         #given = self._check_input_shape(given)
         log_p = self._log_prob(given)
-        return fluid.layers.reduce_sum(log_p, dim=[i for i in range(-self._group_ndims, 0)])
 
+        if self._group_ndims > 0:
+            return fluid.layers.reduce_sum(log_p, dim=[i for i in range(-self._group_ndims, 0)])
+        else:
+            return log_p
 
-    def prob(self, given):
-        """
-        prob(given)
-        Compute probability density (mass) function at `given` value.
-        :param given: A Tensor. The value at which to evaluate probability
-            density (mass) function. Must be able to broadcast to have a shape
-            of ``(... + )batch_shape + value_shape``.
-        :return: A Tensor of shape ``(... + )batch_shape[:-group_ndims]``.
-        """
-        """
-        given = self._check_input_shape(given)
-        p = self._prob(given)
-        return tf.reduce_prod(p, tf.range(-self._group_ndims, 0))
-        """
-        pass
 
     def _log_prob(self, given):
         """
         Private method for subclasses to rewrite the :meth:`log_prob` method.
-        """
-        raise NotImplementedError()
-
-    def _prob(self, given):
-        """
-        Private method for subclasses to rewrite the :meth:`prob` method.
         """
         raise NotImplementedError()
