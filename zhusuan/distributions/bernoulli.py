@@ -17,11 +17,16 @@ class Bernoulli(Distribution):
                              is_reparameterized,
                              group_ndims=group_ndims,
                              **kwargs)
-        self.probs = kwargs['probs']
+        self._probs = kwargs['probs']
+
+    @property
+    def probss(self):
+        """The odds of probabilities of being 1."""
+        return self._probs
 
 
     def _sample(self, **kwargs): 
-        sample_ = paddle.bernoulli(self.probs)
+        sample_ = paddle.bernoulli(self._probs)
         self.sample_cache = sample_
         return sample_
 
@@ -31,11 +36,12 @@ class Bernoulli(Distribution):
             sample = self.sample_cache
 
         ## Log Prob
-        #logits = paddle.log(probs /(1-probs))
+        #logits = paddle.log(self._probs /(1-self._probs))
         #log_prob_sample = -fluid.layers.sigmoid_cross_entropy_with_logits(label=sample, x=logits) # check mark
 
-        log_prob_sample = sample * paddle.log(self.probs + 1e-8) \
-                            + (1 - sample) * paddle.log(1 - self.probs + 1e-8)
+        ## add 1e-8 for numerical stable
+        log_prob_sample = sample * paddle.log(self._probs + 1e-8) \
+                            + (1 - sample) * paddle.log(1 - self._probs + 1e-8)
         log_prob = fluid.layers.reduce_sum(log_prob_sample, dim=1)
 
         return log_prob

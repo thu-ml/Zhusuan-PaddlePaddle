@@ -46,5 +46,36 @@ class BayesianNet(paddle.nn.Layer):
                         name,
                         **kwargs):
         _dist = globals()[distribution](**kwargs)
-        self.nodes[name] = StochasticTensor(self, name, _dist)
-        return self.nodes[name].tensor
+        self._nodes[name] = StochasticTensor(self, name, _dist)
+        return self._nodes[name].tensor
+
+    def _log_joint(self):
+        _ret = 0
+        for k,v in self._nodes.items():
+            if isinstance(v, StochasticTensor):
+                try:
+                    _ret = _ret + v.log_prob()
+                except:
+                    _ret = v.log_prob()
+        return _ret
+
+    def log_joint(self, use_cache=False):
+        """
+        The default log joint probability of this :class:`BayesianNet`.
+        It works by summing over all the conditional log probabilities of
+        stochastic nodes evaluated at their current values (samples or
+        observations).
+        :return: A Tensor.
+        """
+        if use_cache:
+            if not hasattr(self, "_log_joint_cache"):
+                self._log_joint_cache = self._log_joint()
+        else:
+            self._log_joint_cache = self._log_joint()
+
+        return self._log_joint_cache
+
+    def __getitem__(self, name):
+        name = self._check_name_exist(name)
+        return self._nodes[name]
+

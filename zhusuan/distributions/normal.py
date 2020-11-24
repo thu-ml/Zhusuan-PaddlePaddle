@@ -40,12 +40,10 @@ class Normal(Distribution):
             self._logstd = paddle.log(self._std)
             return self._logstd
 
-
     @property
     def std(self):
         """The standard deviation of the Normal distribution."""
         return self._std
-
 
     def _sample(self, **kwargs):
         if self.is_reparameterized:

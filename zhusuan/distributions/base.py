@@ -1,5 +1,4 @@
 ## X
-
 """ Distribution base class """
 
 import paddle

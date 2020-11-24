@@ -119,10 +119,3 @@ class StochasticTensor(object):
 
     def log_prob(self,sample=None):
         return self._dist.log_prob(sample)
-
-    def get_shape(self):
-        """
-        Alias of :attr:`shape`.
-        :return: A ``TensorShape`` instance.
-        """
-        return self.shape

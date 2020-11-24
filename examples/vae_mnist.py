@@ -126,6 +126,7 @@ def main():
 
             ##loss= model(x)
             loss= model({'x':x})
+            assert(generator.log_joint().shape[0] == x.shape[0])
 
             loss.backward()
             optimizer.step()
