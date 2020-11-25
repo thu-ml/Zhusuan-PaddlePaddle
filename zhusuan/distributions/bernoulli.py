@@ -25,8 +25,10 @@ class Bernoulli(Distribution):
         return self._probs
 
 
-    def _sample(self, **kwargs): 
-        sample_ = paddle.bernoulli(self._probs)
+    def _sample(self, n_samples=1, **kwargs): 
+        _probs = paddle.tile(self._probs, repeat_times=\
+                    [n_samples, *[1 for i in range(len(self._probs.shape))]])
+        sample_ = paddle.bernoulli(_probs)
         self.sample_cache = sample_
         return sample_
 
@@ -39,10 +41,16 @@ class Bernoulli(Distribution):
         #logits = paddle.log(self._probs /(1-self._probs))
         #log_prob_sample = -fluid.layers.sigmoid_cross_entropy_with_logits(label=sample, x=logits) # check mark
 
+        if len(sample.shape) > len(self._probs.shape):
+            _probs = paddle.tile(self._probs, repeat_times=\
+                        [sample.shape[0], *[1 for i in range(len(self._probs.shape))]])
+        else:
+            _probs = self._probs
+
         ## add 1e-8 for numerical stable
-        log_prob_sample = sample * paddle.log(self._probs + 1e-8) \
-                            + (1 - sample) * paddle.log(1 - self._probs + 1e-8)
-        log_prob = fluid.layers.reduce_sum(log_prob_sample, dim=1)
+        log_prob_sample = sample * paddle.log(_probs + 1e-8) \
+                            + (1 - sample) * paddle.log(1 - _probs + 1e-8)
+        log_prob = fluid.layers.reduce_sum(log_prob_sample, dim=-1)
 
         return log_prob
 

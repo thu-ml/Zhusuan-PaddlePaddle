@@ -45,31 +45,46 @@ class Normal(Distribution):
         """The standard deviation of the Normal distribution."""
         return self._std
 
-    def _sample(self, **kwargs):
+    def _sample(self, n_samples=1, **kwargs):
+        _shape = fluid.layers.shape(self._std)
+        _shape = fluid.layers.concat([paddle.to_tensor([n_samples], dtype="int32"), _shape])
+        _std = paddle.tile(self._std, repeat_times=\
+                    [n_samples, *[1 for i in range(len(self._std.shape))]]) 
+        _mean = paddle.tile(self._mean, repeat_times=\
+                    [n_samples, *[1 for i in range(len(self._mean.shape))]]) 
+
         if self.is_reparameterized:
             epsilon = paddle.normal(name='sample',
-                                    shape=fluid.layers.shape(self._std),
+                                    shape=_shape,
                                     mean=0.0,
                                     std=1.0)
-            sample_ = self._mean + self._std * epsilon
+            sample_ = _mean + _std * epsilon
         else:
             sample_ = paddle.normal(name='sample',
-                                   shape=fluid.layers.shape(self._std),
-                                   mean=self._mean,
-                                   std=self._std)
+                                   shape=_shape,
+                                   mean=_mean,
+                                   std=_std)
         self.sample_cache = sample_
-        #assert([sample.shape[0]] == log_prob.shape)
+        assert(sample_.shape[0] == n_samples)
         return sample_
 
     def _log_prob(self, sample=None):
         if sample is None:
             sample = self.sample_cache
 
+        if len(sample.shape) > len(self._std.shape):
+            n_samples = sample.shape[0]
+            _std = paddle.tile(self._std, repeat_times=[n_samples, *[1 for i in range(len(self._std.shape))]]) 
+            _mean = paddle.tile(self._mean, repeat_times=[n_samples, *[1 for i in range(len(self._mean.shape))]]) 
+        else:
+            _std = self._std
+            _mean = self._mean
+
         ## Log Prob
-        logstd = paddle.log(self._std)
+        logstd = paddle.log(_std)
         c = -0.5 * np.log(2 * np.pi)
         precision = paddle.exp(-2 * logstd)
-        log_prob_sample = c - logstd - 0.5 * precision * paddle.square(sample - self.mean)
-        log_prob = fluid.layers.reduce_sum(log_prob_sample, dim=1)
+        log_prob_sample = c - logstd - 0.5 * precision * paddle.square(sample - _mean)
+        log_prob = fluid.layers.reduce_sum(log_prob_sample, dim=-1)
 
         return log_prob
