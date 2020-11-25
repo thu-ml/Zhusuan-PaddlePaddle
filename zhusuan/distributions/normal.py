@@ -48,10 +48,9 @@ class Normal(Distribution):
     def _sample(self, n_samples=1, **kwargs):
         _shape = fluid.layers.shape(self._std)
         _shape = fluid.layers.concat([paddle.to_tensor([n_samples], dtype="int32"), _shape])
-        _std = paddle.tile(self._std, repeat_times=\
-                    [n_samples, *[1 for i in range(len(self._std.shape))]]) 
-        _mean = paddle.tile(self._mean, repeat_times=\
-                    [n_samples, *[1 for i in range(len(self._mean.shape))]]) 
+        _len = len(self._std.shape)
+        _std = paddle.tile(self._std, repeat_times=[n_samples, *_len*[1]]) 
+        _mean = paddle.tile(self._mean, repeat_times=[n_samples, *_len*[1]]) 
 
         if self.is_reparameterized:
             epsilon = paddle.normal(name='sample',
@@ -74,8 +73,9 @@ class Normal(Distribution):
 
         if len(sample.shape) > len(self._std.shape):
             n_samples = sample.shape[0]
-            _std = paddle.tile(self._std, repeat_times=[n_samples, *[1 for i in range(len(self._std.shape))]]) 
-            _mean = paddle.tile(self._mean, repeat_times=[n_samples, *[1 for i in range(len(self._mean.shape))]]) 
+            _len = len(self._std.shape)
+            _std = paddle.tile(self._std, repeat_times=[n_samples, *_len*[1]]) 
+            _mean = paddle.tile(self._mean, repeat_times=[n_samples, *_len*[1]]) 
         else:
             _std = self._std
             _mean = self._mean
