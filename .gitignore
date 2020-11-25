@@ -13,3 +13,6 @@ model/*
 *.swp
 *.swc
 *.swo
+
+# Sphinx documentation
+docs/_build/
