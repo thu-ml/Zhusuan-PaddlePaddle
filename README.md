@@ -1,3 +1,5 @@
+[![Documentation Status](https://readthedocs.org/projects/zhusuan-paddlepaddle/badge/?version=main)](https://zhusuan-paddlepaddle.readthedocs.io/en/main/?badge=main)
+
 # Zhusuan-PaddlePaddle
 
 <div align="center">
