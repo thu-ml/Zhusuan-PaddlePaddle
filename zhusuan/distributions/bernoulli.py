@@ -20,7 +20,7 @@ class Bernoulli(Distribution):
         self._probs = kwargs['probs']
 
     @property
-    def probss(self):
+    def probs(self):
         """The odds of probabilities of being 1."""
         return self._probs
 
