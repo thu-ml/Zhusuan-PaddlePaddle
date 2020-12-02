@@ -11,9 +11,10 @@ import paddle.fluid as fluid
 from paddle.fluid.dygraph import to_variable
 
 sys.path.append('..')
+import conf
+
 from zhusuan.framework.bn import BayesianNet
 from zhusuan.variational.elbo import ELBO
-import conf
 
 from utils import load_uci_boston_housing, save_img, standardize
 
@@ -21,12 +22,10 @@ device = paddle.set_device('gpu')
 paddle.disable_static(device)
 
 class Net(BayesianNet):
-    def __init__(self, layer_sizes, n_particles, batch_size):
+    def __init__(self, layer_sizes, n_particles):
         super().__init__()
         self.layer_sizes = layer_sizes
         self.n_particles = n_particles
-        self.batch_size = batch_size
-
         self.y_logstd = self.create_parameter(shape=[1], dtype='float32')
 
     def forward(self, observed):
@@ -51,7 +50,6 @@ class Net(BayesianNet):
             h = paddle.reshape(h, h.shape + [1])
             #print('w.shape: ', w.shape)
             #print('h.shape: ', h.shape)
-            #h = paddle.matmul(w, h) / fluid.layers.sqrt(paddle.cast(h.shape[2], 'float32'))
             p = fluid.layers.sqrt(paddle.to_tensor(h.shape[2], dtype='float32'))
             #print('p.shape: ', p.shape)
             h = paddle.matmul(w, h)  / p
@@ -59,44 +57,37 @@ class Net(BayesianNet):
             #print('w*h.shape: ', h.shape)
 
             if i < len(self.layer_sizes) - 2:
-                #h = self.acts[i](h)
                 h = paddle.nn.ReLU()(h)
 
         y_mean = fluid.layers.squeeze(h, [2])
         #print('y_mean.shape: ', y_mean.shape)
         y = self.observed['y']
-        #print(y[0].numpy(), y_mean[0][0].numpy())
-
         y_pred = fluid.layers.reduce_mean(y_mean,[0])
         self.cache['rmse'] = fluid.layers.sqrt(fluid.layers.reduce_mean((y - y_pred)**2))
 
-        sample = self.sn('Normal',
+        self.sn('Normal',
                 name='y',
                 mean=y_mean,
                 logstd=self.y_logstd,
                 reparameterize=True)
-        #print('sample.shape: ', sample.shape)
-        #print('y_logstd.shape: ', self.y_logstd.shape)
 
         return self
 
 
 class Variational(BayesianNet):
-    def __init__(self, layer_sizes, n_particles, batch_size):
+    def __init__(self, layer_sizes, n_particles):
         super().__init__()
         self.layer_sizes = layer_sizes
         self.n_particles = n_particles
-        self.batch_size = batch_size
 
         self.w_means = [] 
         self.w_logstds = [] 
 
         for i, (n_in, n_out) in enumerate(zip(self.layer_sizes[:-1], self.layer_sizes[1:])):
-            fc = self.create_parameter(shape=[n_out, n_in+1], dtype='float32')
-            #print('fc.shape: ', fc.shape)
-            self.w_means.append(fc)
-            fc = self.create_parameter(shape=(n_out, n_in +1),dtype='float32')
-            self.w_logstds.append(fc)
+            w_mean_ = self.create_parameter(shape=[n_out, n_in+1], dtype='float32', is_bias=True)
+            self.w_means.append(w_mean_)
+            w_logstd_ = self.create_parameter(shape=(n_out, n_in +1),dtype='float32')
+            self.w_logstds.append(w_logstd_)
 
         self.w_means = paddle.nn.ParameterList(self.w_means)
         self.w_logstds = paddle.nn.ParameterList(self.w_logstds)
@@ -114,7 +105,6 @@ class Variational(BayesianNet):
         return self
 
 def main():
-
     # Load UCI Boston housing data
     data_path = os.path.join(conf.data_dir, "housing.data")
     x_train, y_train, x_valid, y_valid, x_test, y_test = \
@@ -134,19 +124,15 @@ def main():
     lb_samples = 512
     ll_samples = 5000
     epoch_size = 5000
-    batch_size = 200
+    batch_size = 114
 
     n_hiddens = [50]
     layer_sizes = [x_dim] + n_hiddens + [1]
     print('layer size: ', layer_sizes)
 
     # create the network
-    net = Net(layer_sizes, lb_samples, batch_size)
-    #net.forward(observed={'x':fluid.layers.ones(shape=(batch_size, x_dim), dtype='float32')})
-    #print(net.parameters())
-    variational = Variational(layer_sizes, lb_samples, batch_size)
-    #variational.forward({})
-    #print(variational.parameters())
+    net = Net(layer_sizes, lb_samples)
+    variational = Variational(layer_sizes, lb_samples)
 
     model = ELBO(net, variational)
     lr = 0.001
@@ -185,7 +171,7 @@ def main():
             optimizer.step()
             optimizer.clear_grad()
 
-            if (step + 1) % 2 == 0:
+            if (step + 1) % num_batches == 0:
                 rmse = net.cache['rmse'].numpy()
                 print("Epoch[{}/{}], Step [{}/{}], Lower bound: {:.4f}, RMSE: {:.4f}"
                       .format(epoch + 1, epoch_size, step + 1, num_batches, float(lbs.numpy()), float(rmse )* std_y_train))
