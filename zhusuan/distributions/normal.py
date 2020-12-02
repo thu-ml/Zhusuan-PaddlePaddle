@@ -47,11 +47,16 @@ class Normal(Distribution):
 
     def _sample(self, n_samples=1, **kwargs):
         #print('n_samples: ', n_samples)
-        _shape = fluid.layers.shape(self._mean)
-        _shape = fluid.layers.concat([paddle.to_tensor([n_samples], dtype="int32"), _shape])
-        _len = len(self._std.shape)
-        _std = paddle.tile(self._std, repeat_times=[n_samples, *_len*[1]]) 
-        _mean = paddle.tile(self._mean, repeat_times=[n_samples, *_len*[1]]) 
+        if n_samples > 1:
+            _shape = fluid.layers.shape(self._mean)
+            _shape = fluid.layers.concat([paddle.to_tensor([n_samples], dtype="int32"), _shape])
+            _len = len(self._std.shape)
+            _std = paddle.tile(self._std, repeat_times=[n_samples, *_len*[1]]) 
+            _mean = paddle.tile(self._mean, repeat_times=[n_samples, *_len*[1]]) 
+        else:
+            _shape = fluid.layers.shape(self._mean)
+            _std = self._std
+            _mean = self._mean
         #print('_shape: ', _shape)
 
         if self.is_reparameterized:
@@ -69,14 +74,15 @@ class Normal(Distribution):
         self.sample_cache = sample_
         #print('sample_.shape: ', sample_.shape)
 
-        assert(sample_.shape[0] == n_samples)
+        if n_samples > 1:
+            assert(sample_.shape[0] == n_samples)
         return sample_
 
     def _log_prob(self, sample=None):
         if sample is None:
             sample = self.sample_cache
 
-        if len(sample.shape) > len(self._std.shape):
+        if len(sample.shape) > len(self._mean.shape):
             n_samples = sample.shape[0]
             _len = len(self._std.shape)
             _std = paddle.tile(self._std, repeat_times=[n_samples, *_len*[1]]) 
@@ -90,6 +96,6 @@ class Normal(Distribution):
         c = -0.5 * np.log(2 * np.pi)
         precision = paddle.exp(-2 * logstd)
         log_prob_sample = c - logstd - 0.5 * precision * paddle.square(sample - _mean)
-        log_prob = fluid.layers.reduce_sum(log_prob_sample, dim=-1)
-
+        #log_prob = fluid.layers.reduce_sum(log_prob_sample, dim=-1)
+        log_prob = log_prob_sample
         return log_prob

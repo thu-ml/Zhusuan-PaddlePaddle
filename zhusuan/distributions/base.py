@@ -222,7 +222,8 @@ class Distribution(object):
         #print('n_samples: ', n_samples)
         if n_samples is None:
             samples = self._sample(n_samples=1)
-            return fluid.layers.squeeze(samples, axes=[0])
+            #return fluid.layers.squeeze(samples, axes=[0])
+            return samples
         elif isinstance(n_samples, int):
             return self._sample(n_samples)
         else:

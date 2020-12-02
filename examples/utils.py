@@ -16,6 +16,23 @@ examples_dir = os.path.dirname(os.path.abspath(__file__))
 data_dir = os.path.join(examples_dir, "data")
 data_path = os.path.join(data_dir, "mnist.pkl.gz")
 
+def standardize(data_train, data_test):
+    """
+    Standardize a dataset to have zero mean and unit standard deviation.
+    :param data_train: 2-D Numpy array. Training data.
+    :param data_test: 2-D Numpy array. Test data.
+    :return: (train_set, test_set, mean, std), The standardized dataset and
+        their mean and standard deviation before processing.
+    """
+    std = np.std(data_train, 0, keepdims=True)
+    std[std == 0] = 1
+    mean = np.mean(data_train, 0, keepdims=True)
+    data_train_standardized = (data_train - mean) / std
+    data_test_standardized = (data_test - mean) / std
+    mean, std = np.squeeze(mean, 0), np.squeeze(std, 0)
+    return data_train_standardized, data_test_standardized, mean, std
+
+
 def show_progress(block_num, block_size, total_size):
     global pbar
     if pbar is None:

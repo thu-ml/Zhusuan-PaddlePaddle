@@ -26,8 +26,12 @@ class Bernoulli(Distribution):
 
 
     def _sample(self, n_samples=1, **kwargs): 
-        _probs = paddle.tile(self._probs, repeat_times=\
+        if n_samples > 1:
+            _probs = paddle.tile(self._probs, repeat_times=\
                     [n_samples, *len(self._probs.shape)*[1]])
+        else:
+            _probs = self._probs
+
         sample_ = paddle.bernoulli(_probs)
         self.sample_cache = sample_
         return sample_

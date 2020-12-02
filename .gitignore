@@ -2,6 +2,7 @@
 *.log
 examples/data/*
 examples/result/*
+examples/*/result/*
 .idea/*
 
 __pycache__/*
