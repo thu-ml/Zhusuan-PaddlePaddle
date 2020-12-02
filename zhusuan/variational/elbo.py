@@ -34,6 +34,7 @@ class ELBO(paddle.nn.Layer):
 
         _v_inputs = {k:v.tensor for k,v in nodes_q.items()}
         _observed = {**_v_inputs, **observed}
+        #print(_observed)
 
         nodes_p = self.generator(_observed).nodes
         #print('nodes_p.keys: ', nodes_p.keys())

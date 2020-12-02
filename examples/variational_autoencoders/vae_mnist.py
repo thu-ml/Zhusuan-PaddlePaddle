@@ -1,16 +1,19 @@
 # Copyright TODO
 
 """ VAE example code """
+import sys
 import os
 import math
 
 import paddle
 import paddle.fluid as fluid
 
+sys.path.append('..')
 from zhusuan.framework.bn import BayesianNet
 from zhusuan.variational.elbo import ELBO
 
 from utils import load_mnist_realval, save_img
+
 
 device = paddle.set_device('gpu')
 paddle.disable_static(device)

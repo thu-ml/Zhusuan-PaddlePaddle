@@ -49,6 +49,7 @@ class StochasticTensor(object):
         self._name = name
         self._dist = dist
         self._dtype = dist.dtype
+        #print(kwargs)
         self._n_samples = kwargs.get("n_samples", None)
         self._observation = observation
         super(StochasticTensor, self).__init__()

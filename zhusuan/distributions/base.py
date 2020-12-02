@@ -219,6 +219,7 @@ class Distribution(object):
             samples to draw from the distribution.
         :return: A Tensor of samples.
         """
+        #print('n_samples: ', n_samples)
         if n_samples is None:
             samples = self._sample(n_samples=1)
             return fluid.layers.squeeze(samples, axes=[0])

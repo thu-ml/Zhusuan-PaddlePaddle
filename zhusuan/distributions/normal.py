@@ -46,13 +46,16 @@ class Normal(Distribution):
         return self._std
 
     def _sample(self, n_samples=1, **kwargs):
-        _shape = fluid.layers.shape(self._std)
+        #print('n_samples: ', n_samples)
+        _shape = fluid.layers.shape(self._mean)
         _shape = fluid.layers.concat([paddle.to_tensor([n_samples], dtype="int32"), _shape])
         _len = len(self._std.shape)
         _std = paddle.tile(self._std, repeat_times=[n_samples, *_len*[1]]) 
         _mean = paddle.tile(self._mean, repeat_times=[n_samples, *_len*[1]]) 
+        #print('_shape: ', _shape)
 
         if self.is_reparameterized:
+            #print('_std: ', _std)
             epsilon = paddle.normal(name='sample',
                                     shape=_shape,
                                     mean=0.0,
@@ -64,6 +67,8 @@ class Normal(Distribution):
                                    mean=_mean,
                                    std=_std)
         self.sample_cache = sample_
+        #print('sample_.shape: ', sample_.shape)
+
         assert(sample_.shape[0] == n_samples)
         return sample_
 

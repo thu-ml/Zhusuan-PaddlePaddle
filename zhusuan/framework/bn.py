@@ -46,7 +46,7 @@ class BayesianNet(paddle.nn.Layer):
                         name,
                         **kwargs):
         _dist = globals()[distribution](**kwargs)
-        self._nodes[name] = StochasticTensor(self, name, _dist)
+        self._nodes[name] = StochasticTensor(self, name, _dist, **kwargs)
         return self._nodes[name].tensor
 
     def _log_joint(self):
