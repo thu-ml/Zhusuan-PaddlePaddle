@@ -122,7 +122,6 @@ def main():
 
     # Define model parameters
     lb_samples = 512
-    ll_samples = 5000
     epoch_size = 5000
     batch_size = 114
 
@@ -156,18 +155,9 @@ def main():
         for step in range(num_batches):
             x = paddle.to_tensor(x_train[step*batch_size:(step+1)*batch_size])
             y = paddle.to_tensor(y_train[step*batch_size:(step+1)*batch_size])
-            #print('x.shape: ', x.shape)
-            #print('y.shape: ', y.shape)
 
-            ##loss= model(x)
             lbs = model({'x':x, 'y':y})
-            #lbs = net.cache['rmse']
-            #loss= fluid.layers.reduce_mean(net({'x':x}).nodes['y'].tensor)
-            #loss = fluid.layers.reduce_mean(net({'x':x}))
-            #loss = fluid.layers.reduce_mean(variational({}).nodes['w1'].tensor)
-            #print('loss: ', loss)
             lbs.backward()
-            #print(net.y_logstd.grad)
             optimizer.step()
             optimizer.clear_grad()
 
