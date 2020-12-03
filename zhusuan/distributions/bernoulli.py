@@ -31,6 +31,7 @@ class Bernoulli(Distribution):
                     [n_samples, *len(self._probs.shape)*[1]])
         else:
             _probs = self._probs
+        print(_probs.shape)
 
         sample_ = paddle.bernoulli(_probs)
         self.sample_cache = sample_
