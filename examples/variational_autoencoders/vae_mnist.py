@@ -48,7 +48,9 @@ class Generator(BayesianNet):
                                  mean=mean,
                                  std=std,
                                  shape=(()), 
-                                 reparameterize=False)
+                                 reparameterize=False,
+                                 reduce_mean_dims=[0],
+                                 reduce_sum_dims=[1])
         #print(z)
 
         x_probs = self.act2_(self.fc2_(self.act2(self.fc2(self.act1(self.fc1(z))))))
@@ -58,7 +60,9 @@ class Generator(BayesianNet):
         sample_x = self.sn('Bernoulli',
                            name='x', 
                            shape=(()), 
-                           probs=x_probs)
+                           probs=x_probs,
+                           reduce_mean_dims=[0],
+                           reduce_sum_dims=[1])
 
         assert(sample_x.shape[0] == batch_len)
         return self
@@ -91,7 +95,9 @@ class Variational(BayesianNet):
                                  mean=z_mean, 
                                  std=z_sd, 
                                  shape=(()), 
-                                 reparameterize=True)
+                                 reparameterize=True,
+                                 reduce_mean_dims=[0],
+                                 reduce_sum_dims=[1])
         
         assert( z.shape[1] == self.z_dim)
         return self
@@ -129,7 +135,7 @@ def main():
 
             ##loss= model(x)
             loss= model({'x':x})
-            assert(generator.log_joint().shape[0] == x.shape[0])
+            assert(generator.log_joint().shape == [])
 
             loss.backward()
             optimizer.step()

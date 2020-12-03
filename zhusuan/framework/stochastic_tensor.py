@@ -1,5 +1,6 @@
 #
 import paddle
+import paddle.fluid as fluid
 from zhusuan import distributions
 
 __all__ = [
@@ -53,6 +54,10 @@ class StochasticTensor(object):
         self._n_samples = kwargs.get("n_samples", None)
         self._observation = observation
         super(StochasticTensor, self).__init__()
+
+        ## when computing log_prob, which dims are averaged or summed
+        self._reduce_mean_dims = kwargs.get("reduce_mean_dims", None)
+        self._reduce_sum_dims = kwargs.get("reduce_sum_dims", None)
 
     def _check_observation(self, observation):
         return observation
@@ -119,4 +124,18 @@ class StochasticTensor(object):
         return self.tensor.shape
 
     def log_prob(self,sample=None):
-        return self._dist.log_prob(sample)
+        _log_probs = self._dist.log_prob(sample)
+
+        if self._reduce_mean_dims:
+            _log_probs = fluid.layers.reduce_mean(_log_probs, self._reduce_mean_dims, keep_dim=True)
+
+        if self._reduce_sum_dims:
+            _log_probs = fluid.layers.reduce_sum(_log_probs, self._reduce_sum_dims, keep_dim=True)
+
+        if self._reduce_mean_dims or self._reduce_sum_dims:
+            _m = self._reduce_mean_dims if self._reduce_mean_dims else []
+            _s = self._reduce_sum_dims if self._reduce_sum_dims else []
+            _log_probs = fluid.layers.squeeze(_log_probs, [*_m, *_s])
+
+        return _log_probs
+

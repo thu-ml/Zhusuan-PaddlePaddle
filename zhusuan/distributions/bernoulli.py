@@ -54,7 +54,8 @@ class Bernoulli(Distribution):
         ## add 1e-8 for numerical stable
         log_prob_sample = sample * paddle.log(_probs + 1e-8) \
                             + (1 - sample) * paddle.log(1 - _probs + 1e-8)
-        log_prob = fluid.layers.reduce_sum(log_prob_sample, dim=-1)
+
+        log_prob = log_prob_sample
 
         return log_prob
 

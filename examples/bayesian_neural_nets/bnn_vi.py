@@ -42,7 +42,8 @@ class Net(BayesianNet):
                         mean=fluid.layers.zeros(shape=[n_out, n_in + 1], dtype='float32'), 
                         std=fluid.layers.ones(shape=[n_out, n_in +1], dtype='float32'),
                         group_ndims=2, 
-                        n_samples=self.n_particles)
+                        n_samples=self.n_particles,
+                        reduce_mean_dims=[0])
 
             w = fluid.layers.unsqueeze(w, axes=[1])
             w = paddle.tile(w, [1, batch_size, 1,1])
@@ -69,7 +70,9 @@ class Net(BayesianNet):
                 name='y',
                 mean=y_mean,
                 logstd=self.y_logstd,
-                reparameterize=True)
+                reparameterize=True,
+                reduce_mean_dims=[0],
+                reduce_sum_dims=[1])
 
         return self
 
@@ -101,7 +104,8 @@ class Variational(BayesianNet):
                     logstd=self.w_logstds[i],
                     group_ndims=2,
                     n_samples=self.n_particles,
-                    reparametrize=True)
+                    reparametrize=True,
+                    reduce_mean_dims=[0])
         return self
 
 def main():
