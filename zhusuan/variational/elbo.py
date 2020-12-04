@@ -30,7 +30,7 @@ class ELBO(paddle.nn.Layer):
         logpxz = self.log_joint(nodes_p)
         logqz = self.log_joint(nodes_q)
 
-        if len(logqz.shape) >0 :
+        if len(logqz.shape) > 0 and reduce_mean:
             elbo = fluid.layers.reduce_mean(logpxz - logqz)
         else:
             elbo = logpxz - logqz

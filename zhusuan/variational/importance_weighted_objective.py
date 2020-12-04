@@ -48,6 +48,9 @@ class ImportanceWeightedObjective(paddle.nn.Layer):
         if self._axis is not None:
             lower_bound = log_mean_exp(lower_bound, self._axis)
 
-        return fluid.layers.reduce_mean(-lower_bound)
+        if reduce_mean:
+            return fluid.layers.reduce_mean(-lower_bound)
+        else:
+            return -lower_bound
 
 iw_objective = 'ImportanceWeightedObjective',
