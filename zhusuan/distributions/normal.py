@@ -4,6 +4,11 @@ import paddle.fluid as fluid
 
 from .base import Distribution
 
+__all__ = [
+    'Normal',
+]
+
+
 class Normal(Distribution):
     def __init__(self,
                  dtype='float32',

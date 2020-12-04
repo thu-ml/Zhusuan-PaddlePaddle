@@ -3,6 +3,10 @@ import paddle.fluid as fluid
 
 from .base import Distribution
 
+__all__ = [
+    'Bernoulli',
+]
+
 class Bernoulli(Distribution):
     def __init__(self,
                  dtype='float32',

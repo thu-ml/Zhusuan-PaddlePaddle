@@ -5,6 +5,12 @@ import numpy as np
 
 from .base import Distribution
 
+__all__ = [
+    'Categorical',
+    'Discrete'
+]
+
+
 class Categorical(Distribution):
     def __init__(self,
                  dtype='int32',
@@ -89,3 +95,6 @@ class Categorical(Distribution):
         # [Notification]: softmax_cross_entropy_with_logits equals to:
         #   - fluid.layers.reduce_sum(sample * paddle.log(logits), axis=1)
         return log_prob
+
+
+Discrete = Categorical
