@@ -21,7 +21,7 @@ class SGLD(paddle.nn.Layer):
 
     def forward(self, bn, observed, resample=False, step=1):
         if resample:
-            self.t == 0
+            self.t = 0
             bn.forward(observed)
             self.t += 1
 
