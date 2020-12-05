@@ -35,6 +35,7 @@ class BayesianNet(paddle.nn.Layer):
         self._observed = {}
         for k,v in observed.items():
             self._observed[k] = v
+        return self
 
 
     def sn(self, *args, **kwargs):

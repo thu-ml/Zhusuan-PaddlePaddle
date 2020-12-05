@@ -58,6 +58,7 @@ class StochasticTensor(object):
         ## when computing log_prob, which dims are averaged or summed
         self._reduce_mean_dims = kwargs.get("reduce_mean_dims", None)
         self._reduce_sum_dims = kwargs.get("reduce_sum_dims", None)
+        self._multiplier = kwargs.get("multiplier", None)
 
     def _check_observation(self, observation):
         return observation
@@ -136,6 +137,9 @@ class StochasticTensor(object):
             _m = self._reduce_mean_dims if self._reduce_mean_dims else []
             _s = self._reduce_sum_dims if self._reduce_sum_dims else []
             _log_probs = fluid.layers.squeeze(_log_probs, [*_m, *_s])
+
+        if self._multiplier:
+            _log_probs = _log_probs * self._multiplier
 
         return _log_probs
 
