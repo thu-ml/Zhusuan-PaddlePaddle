@@ -89,7 +89,7 @@ class Normal(Distribution):
         logstd = paddle.log(_std)
         c = -0.5 * np.log(2 * np.pi)
         precision = paddle.exp(-2 * logstd)
-        log_prob_sample = c - logstd - 0.5 * precision * paddle.square(sample - _mean)
-        log_prob = fluid.layers.reduce_sum(log_prob_sample, dim=-1)
+        log_prob = c - logstd - 0.5 * precision * paddle.square(sample - _mean)
+        # log_prob = fluid.layers.reduce_sum(log_prob, dim=-1)
 
         return log_prob

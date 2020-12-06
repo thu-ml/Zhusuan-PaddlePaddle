@@ -4,6 +4,10 @@ import paddle.fluid as fluid
 
 from .base import Distribution
 
+__all__ = [
+    'FoldNormal'
+]
+
 class FoldNormal(Distribution):
     def __init__(self,
                  dtype='float32',

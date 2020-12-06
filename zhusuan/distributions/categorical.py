@@ -40,6 +40,12 @@ class Categorical(Distribution):
         """The number of categories in the distribution."""
         return self._n_categories
 
+    def _batch_shape(self):
+        """
+        Private method for subclasses to rewrite the :attr:`batch_shape`
+        property.
+        """
+        raise self.probs.shape[:-1]
 
     def _get_batch_shape(self):
         """
@@ -61,6 +67,7 @@ class Categorical(Distribution):
         #                                               np.arange(len(probs_flat.shape)-1,-1,-1).tolist()), self.dtype)
 
         if len(self._probs.shape) == 2:
+            self.sample_cache = sample_flat_
             # Output shape: [ -1, n_samples]
             return sample_flat_
 
@@ -92,7 +99,7 @@ class Categorical(Distribution):
         ## Log Prob
         _probs = paddle.nn.functional.softmax(_probs)
         log_prob = fluid.layers.reduce_sum(sample * paddle.log(_probs + 1e-8), dim=-1)
-        # [Notification]: softmax_cross_entropy_with_logits equals to:
+        # TODO: Paddle do not have softmax_cross_entropy_with_logits, should check if it equals to:
         #   - fluid.layers.reduce_sum(sample * paddle.log(logits), axis=1)
         return log_prob
 
