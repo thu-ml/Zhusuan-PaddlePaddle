@@ -7,7 +7,6 @@ import scipy as sp
 import math
 
 from .base import Distribution
-from .utils import log_combination
 
 __all__ = [
     'Dirichlet'

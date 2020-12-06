@@ -92,8 +92,9 @@ class MultivariateNormalCholesky(Distribution):
         _mean, _cov_tril = self.mean, self.cov_tril
 
         ## Log Prob
-        # TODO: Paddle do not have matrix_diag_part func, here we use a loop to achieve it
-        tril_shape = _cov_tril.shape[0:]
+        # TODO: Paddle do not have matrix_diag_part func,
+        #  Should check if the diag func in Paddle match the requirements.
+        # tril_shape = _cov_tril.shape[0:]
         diag_batch = paddle.reshape(paddle.concat([paddle.diag(_cov_tril[i])
                                                    for i in range(_cov_tril.shape[0])], axis=0),
                                     shape=_cov_tril.shape[:-1])
