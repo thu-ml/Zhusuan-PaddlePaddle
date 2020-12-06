@@ -1,25 +1,30 @@
+
 import paddle
 import paddle.fluid as fluid
 
 import numpy as np
+import scipy as sp
+import math
 
 from .base import Distribution
+from .utils import log_combination
 
 __all__ = [
-    'Categorical',
-    'Discrete'
+    'OnehotCategorical',
+    'OnehotDiscrete'
 ]
 
 
-class Categorical(Distribution):
+class OnehotCategorical(Distribution):
     def __init__(self,
                  dtype='int32',
                  param_dtype='float32',
-                 is_continues=False,
+                 is_continues=True,
                  is_reparameterized=True,
                  group_ndims=0,
                  **kwargs):
-        super(Categorical, self).__init__(dtype,
+
+        super(OnehotCategorical, self).__init__(dtype,
                              param_dtype,
                              is_continues,
                              is_reparameterized,
@@ -31,7 +36,7 @@ class Categorical(Distribution):
 
     @property
     def probs(self):
-        """The un-normalized probabilities."""
+        """The un-normalized log probabilities."""
         return self._probs
 
     @property
@@ -44,63 +49,69 @@ class Categorical(Distribution):
         Private method for subclasses to rewrite the :attr:`batch_shape`
         property.
         """
-        raise self.probs.shape[:-1]
+        raise self._probs.shape[:-1]
 
     def _get_batch_shape(self):
         """
         Private method for subclasses to rewrite the :meth:`get_batch_shape`
         method.
         """
-        return self.probs.shape[:-1]
+        # PaddlePaddle will broadcast the tensor during the calculation.
+        return self._probs.shape[:-1]
 
     def _sample(self, n_samples=1, **kwargs):
 
         if len(self._probs.shape) == 2:
             probs_flat = self._probs
         else:
-            probs_flat = paddle.reshape(self._probs, [-1, self._n_categories])
+            probs_flat = paddle.reshape(self._probs, [-1, self.n_categories])
 
         cate_ = paddle.distribution.Categorical(probs_flat)
         sample_flat_ = paddle.cast(cate_.sample([n_samples]), self.dtype)
-        # samples_flat =  paddle.cast( paddle.transpose(cat.sample([n_samples]),
-        #                                               np.arange(len(probs_flat.shape)-1,-1,-1).tolist()), self.dtype)
 
         if len(self._probs.shape) == 2:
-            self.sample_cache = sample_flat_
-            # Output shape: [ -1, n_samples]
-            return sample_flat_
+            sample_ = sample_flat_
+        else:
+            sample_shape_ = np.concatenate([[n_samples], self.batch_shape], axis=0).tolist()
+            sample_ = paddle.reshape(sample_flat_, sample_shape_)
 
-        sample_shape_ = np.concatenate([[n_samples], self.batch_shape], axis=0).tolist()
-        sample_ = paddle.reshape(sample_flat_, sample_shape_)
+        sample_ = paddle.cast(paddle.nn.functional.one_hot(sample_, self.n_categories),
+                              dtype=self.dtype)
+
         self.sample_cache = sample_
-        assert (sample_.shape[0] == n_samples)
-        # Output shape: [ batch_shape..., n_samples]
+        assert(sample_.shape[0] == n_samples)
         return sample_
 
     def _log_prob(self, sample=None):
 
         if sample is None:
             sample = self.sample_cache
+        sample = paddle.cast(sample, self.param_dtype)
+        _probs = self.probs
 
-        if len(sample.shape) > len(self._probs.shape):
-            _probs = paddle.tile(self._probs, repeat_times=\
-                        [sample.shape[0], *len(self._probs.shape)*[1]])
+        ## Log Prob
+        if (len(sample.shape) == 2) or (len(_probs.shape) == 2):
+            sample_flat = sample
+            logits_flat = _probs
         else:
-            _probs = self._probs
+            sample_flat = paddle.reshape(sample, [-1, self.n_categories])
+            logits_flat = paddle.reshape(_probs, [-1, self.n_categories])
 
         # `label` type to calculate `softmax_with_cross_entropy` in PaddlePaddle
         # must be double
-        sample = paddle.cast(sample, 'double')
+        sample_flat = paddle.cast(sample_flat, 'double')
 
-        ## Log Prob
-        # TODO: Paddle do not have sparse_softmax_cross_entropy_with_logits, should check if it equals to:
-        #   fluid.layers.reduce_sum(paddle.nn.functional.softmax_with_cross_entropy(
-        #             label=sample, logits=_probs, soft_label=True), dim=-1)
+        log_p_flat = -fluid.layers.reduce_sum(paddle.nn.functional.softmax_with_cross_entropy(
+            label=sample_flat, logits=logits_flat, soft_label=True), dim=-1)
 
-        log_prob = -fluid.layers.reduce_sum(paddle.nn.functional.softmax_with_cross_entropy(
-            label=sample, logits=_probs, soft_label=True), dim=-1)
+        if (len(sample.shape) == 2) or (len(_probs.shape) == 2):
+            log_prob = log_p_flat
+        else:
+            log_prob = paddle.reshape(log_p_flat, _probs.shape[:-1])
 
         return log_prob
 
 
-Discrete = Categorical
+
+OnehotDiscrete = OnehotCategorical
+
