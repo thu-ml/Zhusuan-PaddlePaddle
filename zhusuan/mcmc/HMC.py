@@ -5,13 +5,13 @@ import paddle
 import paddle.fluid as fluid
 
 __all__ = [
-    "SGLD",
+    "HMC",
 ]
 
 
-class SGLD(paddle.nn.Layer):
+class HMC(paddle.nn.Layer):
     """
-        SGLD
+        HMC
     """
     def __init__(self, learning_rate, iters=310):
         super().__init__()
@@ -27,8 +27,7 @@ class SGLD(paddle.nn.Layer):
 
             self._latent = {k:v.tensor for k,v in bn.nodes.items() if k not in observed.keys()}
             self._latent_k = self._latent.keys()
-            #self._var_list = [self._latent[k] for k in self._latent_k]
-            self._var_list = [fluid.layers.zeros(self._latent[k].shape, dtype='float32') for k in self._latent_k]
+            self._var_list = [self._latent[k] for k in self._latent_k]
             sample_ = dict(zip(self._latent_k, self._var_list))
             return sample_
 
