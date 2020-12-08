@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import time
 import numpy as np
 from scipy import stats
 import matplotlib.pyplot as plt
@@ -45,7 +46,7 @@ if __name__ == "__main__":
     # Define HMC parameters
     kernel_width = 0.1
     n_chains = 1000
-    n_iters = 200
+    n_iters = 2000
     burnin = n_iters // 2
     n_leapfrogs = 5
 
@@ -56,10 +57,13 @@ if __name__ == "__main__":
     sampler = mcmc.SGLD(learning_rate=1e-4)
 
     samples = []
+    time_st = time.time()
     print('Sampling...')
     for i in range(n_iters):
         if i % 20 == 0:
-            print('step: {}'.format(i))
+            d_time = time.time() - time_st
+            time_st = time.time()
+            print('step: {}, time{}:'.format(i, d_time))
 
         resample = True if i == 0 else False
         sample_ = sampler.sample(model, {}, resample, step=20)
