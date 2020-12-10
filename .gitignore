@@ -17,3 +17,5 @@ model/*
 
 # Sphinx documentation
 docs/_build/
+
+zhusuan/local/*

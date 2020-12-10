@@ -18,6 +18,8 @@ class SGLD(paddle.nn.Layer):
         self.t = 0 
         self.lr = paddle.to_tensor(learning_rate, dtype='float32')
         self.iters = iters
+        self.lr_min = paddle.to_tensor(1e-4, dtype='float32')
+
 
     def forward(self, bn, observed, resample=False, step=1):
         if resample:
@@ -32,7 +34,7 @@ class SGLD(paddle.nn.Layer):
             sample_ = dict(zip(self._latent_k, self._var_list))
             return sample_
 
-        for i in range(step):
+        for s in range(step):
             observed_ = {**dict(zip(self._latent_k, self._var_list)), **observed}
             bn.forward(observed_)
 
@@ -40,9 +42,12 @@ class SGLD(paddle.nn.Layer):
             grad = paddle.grad(log_joint_, self._var_list)
 
             for i,_ in enumerate(grad):
-                _lr = self.lr / math.sqrt(self.t)
+                _lr = max(self.lr_min,self.lr / math.sqrt(self.t))
+                #_lr = self.lr / math.sqrt(self.t)
                 epsilon = paddle.normal(shape=self._var_list[i].shape, mean=0.0, std=paddle.sqrt(_lr))
                 self._var_list[i] = self._var_list[i] + 0.5 * _lr * grad[i] + epsilon
+                self._var_list[i] = self._var_list[i].detach()
+                self._var_list[i].stop_gradient = False
 
             self.t += 1
 
