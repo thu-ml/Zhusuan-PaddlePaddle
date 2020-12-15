@@ -52,6 +52,7 @@ After installation, open your python console and type::
 If no error occurs, you've successfully installed ZhuSuan.
 
 .. Tutorial slides <https://docs.google.com/presentation/d/1Xqi-qFHciAdV9z1FHpGkUcHT-yugNVzwGX3MM74rMuM/edit?usp=sharing>
+   tutorials/lntm
 
 .. toctree::
    :maxdepth: 1
@@ -60,7 +61,6 @@ If no error occurs, you've successfully installed ZhuSuan.
    tutorials/concepts
    tutorials/vae
    tutorials/bnn
-   tutorials/lntm
 
 
 .. toctree::
