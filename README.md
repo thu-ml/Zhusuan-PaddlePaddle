@@ -3,7 +3,7 @@
 # Zhusuan-PaddlePaddle
 
 <div align="center">
-  <a href="http://zhusuan.readthedocs.io"> <img width="250px" height="auto" 
+  <a href="http://zhusuan.readthedocs.io"> <img width="450px" height="auto" 
     src="docs/_static/images/zhusuan-paddle.png"></a>
 </div>
 
@@ -12,7 +12,7 @@
 ZhuSuan-PaddlePaddle is a python probabilistic programming library for
 **Bayesian deep learning**, which conjoins the complimentary advantages of
 Bayesian methods and deep learning. ZhuSuan is built upon
-[PaddlePaddle] (https://www.paddlepaddle.org.cn/). Unlike existing deep learning
+[PaddlePaddle](https://www.paddlepaddle.org.cn/). Unlike existing deep learning
 libraries, which are mainly designed for deterministic neural networks and
 supervised tasks, ZhuSuan-PaddlePaddle provides deep learning style primitives and
 algorithms for building probabilistic models and applying Bayesian inference.
@@ -66,11 +66,11 @@ If you find ZhuSuan-PaddlePaddle useful, please cite it in your publications.
 
 ```
 @ARTICLE{zhusuan2017,
-    title={Zhu{S}uan: A Library for {B}ayesian Deep Learning},
-        author={Shi, Jiaxin and Chen, Jianfei. and Zhu, Jun and Sun, Shengyang
-            and Luo, Yucen and Gu, Yihong and Zhou, Yuhao},
-                journal={arXiv preprint arXiv:1709.05870},
-                    year=2017,
+  title={Zhu{S}uan: A Library for {B}ayesian Deep Learning},
+  author={Shi, Jiaxin and Chen, Jianfei. and Zhu, Jun and Sun, Shengyang
+          and Luo, Yucen and Gu, Yihong and Zhou, Yuhao},
+  journal={arXiv preprint arXiv:1709.05870},
+  year=2017,
 }
 ```
 
