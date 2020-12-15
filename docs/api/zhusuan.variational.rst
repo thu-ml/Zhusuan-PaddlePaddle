@@ -14,3 +14,4 @@ Submodules
    :maxdepth: 4
 
    zhusuan.variational.elbo
+   zhusuan.variational.importance_weighted_objective

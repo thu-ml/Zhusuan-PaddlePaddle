@@ -13,5 +13,15 @@ Subpackages
    :maxdepth: 4
 
    zhusuan.distributions
+   zhusuan.evaluation
    zhusuan.framework
+   zhusuan.mcmc
    zhusuan.variational
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 4
+
+   zhusuan.utils

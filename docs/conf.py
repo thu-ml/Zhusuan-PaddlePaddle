@@ -52,9 +52,9 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'ZhuSuan'
-copyright = u'2020, ZhuSuan contributors'
-author = u'ZhuSuan contributors'
+project = u'ZhuSuan-PaddlePaddle'
+copyright = u'2020, ZhuSuan-PaddlePaddle contributors'
+author = u'ZhuSuan-PaddlePaddle contributors'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -117,7 +117,8 @@ html_theme_options = {
 html_static_path = ['_static']
 
 
-html_logo = '_static/images/zhusuan-logo-v.svg'
+#html_logo = '_static/images/zhusuan-logo-v.svg'
+html_logo = '_static/images/zhusuan-paddle.png'
 
 
 def setup(app):
@@ -137,7 +138,7 @@ def setup(app):
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'ZhuSuandoc'
+htmlhelp_basename = 'ZhuSuanPaddlePaddledoc'
 
 
 # -- Options for LaTeX output ---------------------------------------------
@@ -164,8 +165,8 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'ZhuSuan.tex', u'ZhuSuan Documentation',
-     u'ZhuSuan contributors', 'manual'),
+    (master_doc, 'ZhuSuan-PaddlePaddle.tex', u'ZhuSuan-PaddlePaddle Documentation',
+     u'ZhuSuan-PaddlePaddle contributors', 'manual'),
 ]
 
 
@@ -174,7 +175,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'zhusuan', u'ZhuSuan Documentation',
+    (master_doc, 'zhusuan-paddlepaddle', u'ZhuSuan-PaddlePaddle Documentation',
      [author], 1)
 ]
 
@@ -184,7 +185,7 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'ZhuSuan', u'ZhuSuan Documentation',
-     author, 'ZhuSuan', 'A Library for Generative Models',
+    (master_doc, 'ZhuSuan-PaddlePaddle', u'ZhuSuan-PaddlePaddle Documentation',
+     author, 'ZhuSuan-PaddlePaddle', 'A Library for Generative Models',
      'Miscellaneous'),
 ]
