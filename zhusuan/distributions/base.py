@@ -182,7 +182,6 @@ class Distribution(object):
         The shape showing how many independent inputs (which we call batches)
         are fed into the distribution. For batch inputs, the shape of a
         generated sample is ``batch_shape + value_shape``.
-        We borrow this concept from `tf.contrib.distributions`.
         """
         return self._batch_shape()
 

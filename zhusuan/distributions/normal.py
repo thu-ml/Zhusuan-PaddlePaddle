@@ -25,9 +25,10 @@ class Normal(Distribution):
                              **kwargs)
         try:
             self._std = kwargs['std']
+            self._logstd = paddle.log(self._std)
         except:
             self._logstd = kwargs['logstd']
-            self._std = paddle.exp(kwargs['logstd'])
+            self._std = paddle.exp(self._logstd)
 
         self._mean = kwargs['mean']
 
@@ -64,10 +65,19 @@ class Normal(Distribution):
                                     std=1.0)
             sample_ = _mean + _std * epsilon
         else:
-            sample_ = paddle.normal(name='sample',
-                                   shape=_shape,
-                                   mean=_mean,
-                                   std=_std)
+            _mean.stop_gradient = True
+            _std.stop_gradient = True
+            epsilon = paddle.normal(name='sample',
+                                    shape=_shape,
+                                    mean=0.0,
+                                    std=1.0)
+            # epsilon.stop_gradient = True
+            sample_ = _mean + _std * epsilon
+            sample_.stop_gradient = False
+            # sample_ = paddle.normal(name='sample',
+            #                        shape=_shape,
+            #                        mean=_mean,
+            #                        std=_std)
         self.sample_cache = sample_
         assert(sample_.shape[0] == n_samples)
         return sample_
@@ -86,6 +96,9 @@ class Normal(Distribution):
             _mean = self._mean
 
         ## Log Prob
+        if not self.is_reparameterized:
+            _mean.stop_gradient = True
+            _std.stop_gradient = True
         logstd = paddle.log(_std)
         c = -0.5 * np.log(2 * np.pi)
         precision = paddle.exp(-2 * logstd)
