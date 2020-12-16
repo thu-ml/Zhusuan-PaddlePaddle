@@ -20,16 +20,13 @@ __all__ = [
     'test_batch_shape_2parameter_univariate'
 ]
 
-def test_and_save_distribution_img( Distribution,
+def test_and_save_distribution_img( distribution,
                                     hist_folder=os.path.join(
                                         os.path.dirname(__file__),'hist_images')):
     # Test sample hist and save image to histogram folder
     if not os.path.isdir(hist_folder):
         os.mkdir(hist_folder)
 
-    param1 = paddle.zeros([1])
-    param2 = paddle.ones([1])
-    distribution = Distribution(param1, param2)
     samples = distribution.sample(10000).numpy().flatten()
 
     dist_name = distribution.__class__.__name__
@@ -135,8 +132,6 @@ def test_2parameter_log_prob_shape_same(
     #     raise AssertionError("Incompatible shapes")
 
 
-
-
 def test_2parameter_sample_shape_same(
         test_class, Distribution, make_param1, make_param2):
 
@@ -148,6 +143,7 @@ def test_2parameter_sample_shape_same(
         samples = dist.sample(n_samples)
         test_class.assertEqual(samples.shape, target_shape)
 
+    # TODO: Sample_shape will be [n_samples, batch_shape]
     _test_dynamic([2, 3], [2, 1], 1, [1, 2, 3])
     _test_dynamic([1, 3], [2, 1], 2, [2, 2, 3])
     _test_dynamic([2, 1, 5], [1, 3, 1], 3, [3, 2, 3, 5])
