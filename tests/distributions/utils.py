@@ -14,9 +14,13 @@ import os
 
 __all__ = [
     'test_and_save_distribution_img',
+    'test_dtype_1parameter_discrete',
     'test_dtype_2parameter',
+    'test_1parameter_log_prob_shape_same',
     'test_2parameter_log_prob_shape_same',
+    'test_1parameter_sample_shape_same',
     'test_2parameter_sample_shape_same',
+    'test_batch_shape_1parameter',
     'test_batch_shape_2parameter_univariate'
 ]
 
@@ -44,6 +48,50 @@ def test_and_save_distribution_img( distribution,
     fig.subplots_adjust(hspace=0.4)
     # plt.show()
     plt.savefig(img_path)
+
+
+def test_dtype_1parameter_discrete(
+        test_class, Distribution, prob_only=False, allow_16bit=True):
+
+    def _test_sample_dtype(input_, result_dtype, **kwargs):
+        distribution = Distribution(input_, **kwargs)
+        samples = distribution.sample(2)
+        # test_class.assertEqual(distribution.dtype, result_dtype)
+        test_class.assertEqual(samples.dtype, result_dtype)
+
+    def _test_sample_dtype_raise(input_, dtype):
+        try:
+            _ = Distribution(input_, dtype=dtype)
+        except:
+            raise TypeError("`dtype`.*not in")
+
+    paddle_float16 = paddle.cast(paddle.to_tensor([1]), dtype='float16').dtype
+    paddle_float32 = paddle.cast(paddle.to_tensor([1]), dtype='float32').dtype
+    paddle_float64 = paddle.cast(paddle.to_tensor([1]), dtype='float64').dtype
+    paddle_int16 = paddle.cast(paddle.to_tensor([1]), dtype='int16').dtype
+    paddle_int32 = paddle.cast(paddle.to_tensor([1]), dtype='int32').dtype
+    paddle_int64 = paddle.cast(paddle.to_tensor([1]), dtype='int64').dtype
+    paddle_uint8 = paddle.cast(paddle.to_tensor([1]), dtype='uint8').dtype
+    paddle_bool = paddle.cast(paddle.to_tensor([1]), dtype='bool').dtype
+    
+    if not prob_only:
+        for input_elem in [[1.], [[2., 3.], [4., 5.]]]:
+            input_ = paddle.to_tensor(input_elem)
+            _test_sample_dtype(input_, paddle_int32, dtype=paddle_int32)
+
+            if allow_16bit:
+                _test_sample_dtype(input_, paddle_int16, dtype=paddle_int16)
+                _test_sample_dtype(input_, paddle_float16, dtype=paddle_float16)
+            else:
+                _test_sample_dtype_raise(input_, dtype=paddle_int16)
+                _test_sample_dtype_raise(input_, dtype=paddle_float16)
+
+            _test_sample_dtype(input_, paddle_int32, dtype=paddle_int32)
+            _test_sample_dtype(input_, paddle_int64, dtype=paddle_int64)
+            _test_sample_dtype(input_, paddle_float32, dtype=paddle_float32)
+            _test_sample_dtype(input_, paddle_float64, dtype=paddle_float64)
+            _test_sample_dtype_raise(input_, dtype=paddle_uint8)
+            _test_sample_dtype_raise(input_, dtype=paddle_bool)
 
 
 def test_dtype_2parameter(test_class, Distribution):
@@ -111,6 +159,28 @@ def test_dtype_2parameter(test_class, Distribution):
 
 
 
+def test_1parameter_log_prob_shape_same(
+        test_class, Distribution, make_param, make_given):
+
+    def _test_dynamic(param_shape, given_shape, target_shape):
+
+        param = paddle.cast(paddle.to_tensor(make_param(param_shape)), 'float32')
+        dist = Distribution(param)
+
+        given = paddle.cast(paddle.to_tensor(make_given(given_shape)), 'float32')
+        log_p = dist.log_prob(given)
+        test_class.assertEqual(log_p.shape, target_shape)
+
+    _test_dynamic([2, 3], [1, 3], [2, 3])
+    _test_dynamic([1, 3], [2, 2, 3], [2, 2, 3])
+    _test_dynamic([1, 5], [1, 2, 3, 1], [1, 2, 3, 5])
+    # try:
+    #     _test_dynamic([2, 3, 5], [1, 2, 1], None)
+    # except:
+    #     raise AssertionError("Incompatible shapes")
+    #
+
+
 def test_2parameter_log_prob_shape_same(
         test_class, Distribution, make_param1, make_param2, make_given):
 
@@ -132,6 +202,22 @@ def test_2parameter_log_prob_shape_same(
     #     raise AssertionError("Incompatible shapes")
 
 
+
+def test_1parameter_sample_shape_same(
+        test_class, Distribution, make_param, only_one_sample=False):
+
+    def _test_dynamic(param_shape, n_samples, target_shape):
+        param = paddle.cast(paddle.to_tensor(make_param(param_shape)), 'float32')
+        dist = Distribution(param)
+        samples = dist.sample(n_samples)
+        test_class.assertEqual(samples.shape, target_shape)
+
+    _test_dynamic([2, 3], 1, [1, 2, 3])
+    if not only_one_sample:
+        _test_dynamic([1, 3], 2, [2, 1, 3])
+        _test_dynamic([2, 1, 5], 3, [3, 2, 1, 5])
+
+
 def test_2parameter_sample_shape_same(
         test_class, Distribution, make_param1, make_param2):
 
@@ -151,6 +237,23 @@ def test_2parameter_sample_shape_same(
     #     _test_dynamic([2, 3, 5], [1, 1, 1], 1, None)
     # except:
     #     raise AssertionError("Incompatible shapes")
+
+
+
+def test_batch_shape_1parameter(
+        test_class, Distribution, make_param, is_univariate):
+
+    # dynamic
+    def _test_dynamic(param_shape):
+        param = paddle.cast(paddle.to_tensor(make_param(param_shape)),'float32')
+        dist = Distribution(param)
+        test_class.assertEqual(dist.batch_shape,
+                               param_shape if is_univariate else param_shape[:-1])
+    if is_univariate:
+        _test_dynamic([])
+    _test_dynamic([2])
+    _test_dynamic([2, 3])
+    _test_dynamic([2, 1, 4])
 
 
 def test_batch_shape_2parameter_univariate(
