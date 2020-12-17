@@ -27,7 +27,7 @@ class TestPoisson(unittest.TestCase):
         self._Poisson = lambda rate,  **kwargs: Poisson(
             rate=rate,  **kwargs)
 
-    # # TODO: Define the value shape in Beta module
+    # # TODO: Define the value shape in Poisson module
     # def test_value_shape(self):
     #     # dynamic
     #     dist = self._Poisson(paddle.ones([], dtype='float32'))
