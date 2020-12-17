@@ -98,7 +98,7 @@ class Beta(Distribution):
         _beta *= paddle.ones(self.batch_shape, dtype=_beta.dtype)
 
         ## Log Prob
-        # TODO: Paddle do not have lgamma module. Here we use Scipy
+        # TODO: Paddle do not have beta module. Here we use Scipy
         log_prob = paddle.to_tensor(stats.beta.logpdf(sample.numpy(), _alpha.numpy(), _beta.numpy()))
         log_prob = paddle.cast(log_prob, self._alpha.dtype)
 

@@ -2,6 +2,7 @@ import numpy as np
 import math
 import paddle
 import paddle.fluid as fluid
+from scipy import stats
 
 from .base import Distribution
 
@@ -38,7 +39,7 @@ class Poisson(Distribution):
         Private method for subclasses to rewrite the :attr:`batch_shape`
         property.
         """
-        raise self.rate.shape
+        return self.rate.shape
 
     def _get_batch_shape(self):
         """
@@ -50,12 +51,20 @@ class Poisson(Distribution):
     def _sample(self, n_samples=1, **kwargs):
 
         _rate = self.rate
+
+        if not self.is_reparameterized:
+            _rate = _rate * 1
+            _rate.stop_gradient = True
+
         sample_shape_ = np.concatenate([[n_samples], self.batch_shape], axis=0).tolist()
 
         # TODO: Paddle do not have poisson distribution module. Here we use Numpy Random
         sample_ = paddle.cast(paddle.to_tensor(
-            np.random.poisson(lam=_rate, size=sample_shape_)),
+            np.random.poisson(lam=_rate.numpy(), size=sample_shape_)),
             dtype=self.dtype)
+
+        sample_.stop_gradient = False
+        # sample_ = paddle.cast(sample_, dtype=self.dtype)
 
         self.sample_cache = sample_
         assert(sample_.shape[0] == n_samples)
@@ -70,10 +79,14 @@ class Poisson(Distribution):
         _rate = self.rate
 
         ## Log Prob
-        log_rate = paddle.log(_rate)
-        # TODO: Paddle do not have lgamma module. Here we use Math package
-        lgamma_given_plus_1 = paddle.to_tensor(list(map(lambda x: math.lgamma(x), sample + 1 )))
-        log_prob =  sample * log_rate - _rate - lgamma_given_plus_1
+        # TODO: Paddle do not have poisson module. Here we use Scipy
+        log_prob = paddle.to_tensor(stats.poisson.logpmf(sample.numpy(), _rate.numpy()))
+        log_prob = paddle.cast(log_prob, self.dtype)
+
+        # # # A different way to calculate log_prob:
+        # log_rate = paddle.log(_rate)
+        # lgamma_given_plus_1 = paddle.to_tensor(list(map(lambda x: math.lgamma(x), sample + 1 )))
+        # log_prob =  sample * log_rate - _rate - lgamma_given_plus_1
 
         return log_prob
 
