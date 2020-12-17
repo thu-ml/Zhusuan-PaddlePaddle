@@ -263,14 +263,14 @@ def test_batch_shape_2parameter_univariate(
     def _test_dynamic(param1_shape, param2_shape, target_shape):
         param1 = paddle.cast(paddle.to_tensor(make_param1(param1_shape)),'float32')
         param2 = paddle.cast(paddle.to_tensor(make_param2(param2_shape)),'float32')
-        dist = Distribution(mean=param1, std=param2)
+        dist = Distribution(param1, param2)
         # test_class.assertTrue(np.array(dist.batch_shape).dtype is np.int32)
         test_class.assertEqual( dist.batch_shape, target_shape)
 
     # _test_dynamic([2, 3], [], [2, 3])
-    _test_dynamic([2, 3], [1,3], [2, 3])
+    _test_dynamic([2, 3], [3], [2, 3])
     _test_dynamic([2, 1, 4], [2, 3, 4], [2, 3, 4])
-    _test_dynamic([2, 3, 5], [1, 2, 1], [2, 3, 5])
+    _test_dynamic([2, 3, 5], [3, 1], [2, 3, 5])
     # try:
     #     _test_dynamic([2, 3, 5], [3, 2], None)
     # except:

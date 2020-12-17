@@ -94,7 +94,6 @@ class TestNormal(unittest.TestCase):
         samples = norm_rep.sample()
         mean_grads, logstd_grads = paddle.grad(outputs=[samples], inputs=[mean, logstd],
                                                allow_unused=True)
-        # mean_grads, logstd_grads = tf.gradients(samples, [mean, logstd])
         self.assertTrue(mean_grads is not None)
         self.assertTrue(logstd_grads is not None)
 
@@ -104,7 +103,6 @@ class TestNormal(unittest.TestCase):
                                                inputs=[mean, logstd],
                                                allow_unused=True)
 
-        # mean_grads, logstd_grads = tf.gradients(samples, [mean, logstd])
         self.assertEqual(mean_grads, None)
         self.assertEqual(logstd_grads, None)
 

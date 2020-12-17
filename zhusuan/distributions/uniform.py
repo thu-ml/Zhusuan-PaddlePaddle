@@ -1,6 +1,7 @@
 import numpy as np
 import paddle
 import paddle.fluid as fluid
+from scipy import stats
 
 from .base import Distribution
 
@@ -44,7 +45,9 @@ class Uniform(Distribution):
         property.
         """
         # PaddlePaddle will broadcast the tensor during the calculation.
-        raise (self._minval + self._maxval).shape
+
+        return (paddle.ones_like(self._minval) * paddle.ones_like(self._maxval)).shape
+        # return (self._minval + self._maxval).shape
 
     def _get_batch_shape(self):
         """
@@ -52,19 +55,25 @@ class Uniform(Distribution):
         method.
         """
         # PaddlePaddle will broadcast the tensor during the calculation.
-        return (self._minval + self._maxval).shape
+        return (paddle.ones_like(self._minval) * paddle.ones_like(self._maxval)).shape
+        # return (self._minval + self._maxval).shape
 
     def _sample(self, n_samples=1, **kwargs):
 
         _minval, _maxval = self.minval, self.maxval
+
         if not self.is_reparameterized:
+            _minval, _maxval = _minval * 1, _maxval * 1
             _minval.stop_gradient = True
             _maxval.stop_gradient = True
 
         sample_shape_ = np.concatenate([[n_samples], self.batch_shape], axis=0).tolist()
-        # shape_ = paddle.concat([[n_samples], self.batch_shape], axis=0)
-        sample_ = paddle.cast(paddle.uniform( shape=sample_shape_, min=0, max=1 ),
-                              dtype=self.dtype) * (_maxval - _minval) + _minval
+        sample_temp = paddle.cast(paddle.uniform( shape=sample_shape_, min=0, max=1 ),
+                              dtype=self.dtype)
+        sample_ = sample_temp * (_maxval - _minval) + _minval
+
+        sample_ = paddle.cast(sample_, self._minval.dtype)
+        sample_.stop_gradient = False
         self.sample_cache = sample_
         assert(sample_.shape[0] == n_samples)
         return sample_
@@ -73,21 +82,27 @@ class Uniform(Distribution):
         if sample is None:
             sample = self.sample_cache
 
-        if len(sample.shape) > len(self._minval.shape):
-            n_samples = sample.shape[0]
-            _len = len(self._minval.shape)
-            _minval = paddle.tile(self._minval, repeat_times=[n_samples, *_len*[1]])
-            _maxval = paddle.tile(self._maxval, repeat_times=[n_samples, *_len * [1]])
-        else:
-            _minval = self._minval
-            _maxval = self._maxval
+        _minval, _maxval = self.minval, self.maxval
+
+        # Broadcast
+        _minval *= paddle.ones(self.batch_shape, dtype=_minval.dtype)
+        _maxval *= paddle.ones(self.batch_shape, dtype=_maxval.dtype)
 
         ## Log Prob
-        mask = paddle.cast(  paddle.logical_and( paddle.less_equal(_minval, sample),
-                                                 paddle.less_than(sample, _maxval) ),
-                             self.dtype )
-        p = 1. / (_maxval - _minval)
-        prob_ = p * mask
-        log_prob = paddle.log( prob_ )
+        log_prob = paddle.to_tensor(stats.uniform.logpdf(
+            sample.numpy(), _minval.numpy(), _maxval.numpy() - _minval.numpy()))
+        log_prob = paddle.cast(log_prob, self._minval.dtype)
+
+        # # A different way to calculate log_prob:
+        # mask = paddle.cast(  paddle.logical_and( paddle.less_equal(_minval, sample),
+        #                                          paddle.less_than(sample, _maxval) ),
+        #                      self.dtype )
+        # p = 1. / (_maxval - _minval)
+        # prob_ = p * mask
+        # log_prob = paddle.log( prob_ )
 
         return log_prob
+
+
+
+
