@@ -36,7 +36,7 @@ class TestUniform(unittest.TestCase):
         self._Uniform(paddle.zeros([32, 1], dtype='float32'),
                       paddle.ones([32, 1, 3], dtype='float32'))
 
-    ## TODO: Define the value shape in Categorical module
+    ## TODO: Define the value shape in Uniform module
     # def test_value_shape(self):
     #
     #     # dynamic

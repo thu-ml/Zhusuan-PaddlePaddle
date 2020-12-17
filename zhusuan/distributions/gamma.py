@@ -2,6 +2,7 @@ import numpy as np
 import math
 import paddle
 import paddle.fluid as fluid
+from scipy import stats
 
 from .base import Distribution
 
@@ -46,7 +47,7 @@ class Gamma(Distribution):
         property.
         """
         # PaddlePaddle will broadcast the tensor during the calculation.
-        raise (self._alpha + self._beta).shape
+        return (self._alpha + self._beta).shape
 
     def _get_batch_shape(self):
         """
@@ -59,12 +60,24 @@ class Gamma(Distribution):
     def _sample(self, n_samples=1, **kwargs):
 
         _alpha, _beta = self.alpha, self.beta
+
+        # Broadcast
+        _alpha *= paddle.ones(self.batch_shape, dtype=_alpha.dtype)
+        _beta *= paddle.ones(self.batch_shape, dtype=_beta.dtype)
+
+        if not self.is_reparameterized:
+            _alpha, _beta = _alpha * 1, _beta * 1
+            _alpha.stop_gradient = True
+            _beta.stop_gradient = True
+
         sample_shape_ = np.concatenate([[n_samples], self.batch_shape], axis=0).tolist()
         # TODO: Paddle do not have gamma distribution module. Here we use Numpy Random
         sample_ = paddle.cast(paddle.to_tensor(
-            np.random.gamma(shape=_alpha,scale=_beta, size=sample_shape_)),
+            np.random.gamma(shape=_alpha.numpy(), scale=_beta.numpy(), size=sample_shape_)),
             dtype=self.dtype)
+        sample_ = paddle.cast(sample_, self._alpha.dtype)
 
+        sample_.stop_gradient = False
         self.sample_cache = sample_
         assert(sample_.shape[0] == n_samples)
         return sample_
@@ -77,12 +90,22 @@ class Gamma(Distribution):
         # alpha should not be 0
         _alpha, _beta = self.alpha, self.beta
 
+        # Broadcast
+        _alpha *= paddle.ones(self.batch_shape, dtype=_alpha.dtype)
+        _beta *= paddle.ones(self.batch_shape, dtype=_beta.dtype)
+
         ## Log Prob
-        log_given = paddle.log(sample)
-        log_beta = paddle.log(_beta)
-        # TODO: Paddle do not have lgamma module. Here we use Math package
-        lgamma_alpha = paddle.to_tensor(list(map(lambda x: math.lgamma(x), _alpha )))
-        log_prob = _alpha * log_beta - lgamma_alpha + (_alpha - 1) * log_given - \
-            _beta * sample
+        # TODO: Paddle do not have lgamma module. Here we use Scipy
+        log_prob = paddle.to_tensor(stats.gamma.logpdf(
+            sample.numpy(), _alpha.numpy(), scale=1. / _beta.numpy()))
+        log_prob = paddle.cast(log_prob, self._alpha.dtype)
+
+        # # A different way to calculate log_prob:
+        # log_given = paddle.log(sample)
+        # log_beta = paddle.log(_beta)
+        # lgamma_alpha = paddle.to_tensor(list(map(lambda x: math.lgamma(x), _alpha )))
+        # log_prob = _alpha * log_beta - lgamma_alpha + (_alpha - 1) * log_given - \
+        #     _beta * sample
+
         return log_prob
 
