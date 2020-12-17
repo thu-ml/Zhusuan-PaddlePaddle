@@ -44,14 +44,14 @@ class Categorical(Distribution):
         Private method for subclasses to rewrite the :attr:`batch_shape`
         property.
         """
-        raise self.probs.shape[:-1]
+        return self.probs.shape[:-1] #if len(self.probs.shape) > 1 else [1]
 
     def _get_batch_shape(self):
         """
         Private method for subclasses to rewrite the :meth:`get_batch_shape`
         method.
         """
-        return self.probs.shape[:-1]
+        return self.probs.shape[:-1] #if len(self.probs.shape) > 1 else [1]
 
     def _sample(self, n_samples=1, **kwargs):
 
@@ -70,8 +70,12 @@ class Categorical(Distribution):
             # Output shape: [ -1, n_samples]
             return sample_flat_
 
-        sample_shape_ = np.concatenate([[n_samples], self.batch_shape], axis=0).tolist()
+        if self.batch_shape in [ [] ]:
+            sample_shape_ = [n_samples]
+        else:
+            sample_shape_ = np.concatenate([[n_samples], self.batch_shape], axis=0).tolist()
         sample_ = paddle.reshape(sample_flat_, sample_shape_)
+
         self.sample_cache = sample_
         assert (sample_.shape[0] == n_samples)
         # Output shape: [ batch_shape..., n_samples]
@@ -82,25 +86,22 @@ class Categorical(Distribution):
         if sample is None:
             sample = self.sample_cache
 
-        if len(sample.shape) > len(self._probs.shape):
-            _probs = paddle.tile(self._probs, repeat_times=\
-                        [sample.shape[0], *len(self._probs.shape)*[1]])
-        else:
-            _probs = self._probs
-
-        # `label` type to calculate `softmax_with_cross_entropy` in PaddlePaddle
-        # must be double
-        sample = paddle.cast(sample, 'double')
-
         ## Log Prob
-        # TODO: Paddle do not have sparse_softmax_cross_entropy_with_logits, should check if it equals to:
-        #   fluid.layers.reduce_sum(paddle.nn.functional.softmax_with_cross_entropy(
-        #             label=sample, logits=_probs, soft_label=True), dim=-1)
+        # TODO: Paddle do not have sparse_softmax_cross_entropy_with_logits,
+        #  should check if it equals to the equations below:
 
-        log_prob = -fluid.layers.reduce_sum(paddle.nn.functional.softmax_with_cross_entropy(
-            label=sample, logits=_probs, soft_label=True), dim=-1)
+        normalized_logits = self.probs - paddle.logsumexp( self.probs, axis=-1, keepdim=True)
+        one_hot_ = paddle.nn.functional.one_hot(paddle.to_tensor(sample), self.probs.shape[-1])
+        log_prob = fluid.layers.reduce_sum(one_hot_ * normalized_logits, dim=-1)
+
+        # # A different way to calculate log_prob:
+        # log_prob = -fluid.layers.reduce_sum(paddle.nn.functional.softmax_with_cross_entropy(
+        #     label=sample, logits=_probs, soft_label=True), dim=-1)
 
         return log_prob
+
+
+
 
 
 Discrete = Categorical
