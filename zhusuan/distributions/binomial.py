@@ -57,7 +57,11 @@ class Binomial(Distribution):
             _probs = _probs * 1
             _probs.stop_gradient = True
 
-        sample_shape_ = np.concatenate([[n_samples], self.batch_shape], axis=0).tolist()
+        if n_samples > 1:
+            sample_shape_ = np.concatenate([[n_samples], self.batch_shape], axis=0).tolist()
+        else:
+            sample_shape_ = self.batch_shape
+
         _probs *= paddle.less_equal(_probs, paddle.ones_like(_probs))
 
         # TODO: Paddle do not have poisson distribution module. Here we use Numpy Random
@@ -87,7 +91,8 @@ class Binomial(Distribution):
         sample_ = paddle.cast(sample_, self.dtype)
 
         self.sample_cache = sample_
-        assert (sample_.shape[0] == n_samples)
+        if n_samples > 1:
+            assert (sample_.shape[0] == n_samples)
         # Output shape: [ batch_shape..., n_samples]
         return sample_
 

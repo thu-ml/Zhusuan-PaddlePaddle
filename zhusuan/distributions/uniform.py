@@ -67,7 +67,10 @@ class Uniform(Distribution):
             _minval.stop_gradient = True
             _maxval.stop_gradient = True
 
-        sample_shape_ = np.concatenate([[n_samples], self.batch_shape], axis=0).tolist()
+        if n_samples > 1:
+            sample_shape_ = np.concatenate([[n_samples], self.batch_shape], axis=0).tolist()
+        else:
+            sample_shape_ = self.batch_shape
         sample_temp = paddle.cast(paddle.uniform( shape=sample_shape_, min=0, max=1 ),
                               dtype=self.dtype)
         sample_ = sample_temp * (_maxval - _minval) + _minval
@@ -75,7 +78,8 @@ class Uniform(Distribution):
         sample_ = paddle.cast(sample_, self._minval.dtype)
         sample_.stop_gradient = False
         self.sample_cache = sample_
-        assert(sample_.shape[0] == n_samples)
+        if n_samples > 1:
+            assert(sample_.shape[0] == n_samples)
         return sample_
 
     def _log_prob(self, sample=None):

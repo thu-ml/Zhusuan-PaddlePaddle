@@ -70,7 +70,10 @@ class Gamma(Distribution):
             _alpha.stop_gradient = True
             _beta.stop_gradient = True
 
-        sample_shape_ = np.concatenate([[n_samples], self.batch_shape], axis=0).tolist()
+        if n_samples > 1:
+            sample_shape_ = np.concatenate([[n_samples], self.batch_shape], axis=0).tolist()
+        else:
+            sample_shape_ = self.batch_shape
         # TODO: Paddle do not have gamma distribution module. Here we use Numpy Random
         sample_ = paddle.cast(paddle.to_tensor(
             np.random.gamma(shape=_alpha.numpy(), scale=_beta.numpy(), size=sample_shape_)),
@@ -79,7 +82,8 @@ class Gamma(Distribution):
 
         sample_.stop_gradient = False
         self.sample_cache = sample_
-        assert(sample_.shape[0] == n_samples)
+        if n_samples > 1:
+            assert(sample_.shape[0] == n_samples)
         return sample_
 
 

@@ -54,24 +54,26 @@ class FoldNormal(Distribution):
         # if n_samples > 1:
         _shape = fluid.layers.shape(self._mean)
         _shape = fluid.layers.concat([paddle.to_tensor([n_samples], dtype="int32"), _shape])
-        _len = len(self._std.shape)
-        _std = paddle.tile(self._std, repeat_times=[n_samples, *_len*[1]])
-        _mean = paddle.tile(self._mean, repeat_times=[n_samples, *_len*[1]])
-        # else:
-        #     _shape = fluid.layers.shape(self._mean)
-        #     _std = self._std
-        #     _mean = self._mean
+        _len = len(self._mean.shape)
+
+        if n_samples > 1:
+            _std = paddle.tile(self._std, repeat_times=[n_samples, *_len*[1]])
+            _mean = paddle.tile(self._mean, repeat_times=[n_samples, *_len*[1]])
+        else:
+            _shape = fluid.layers.shape(self._mean)
+            _std = self._std + 0.
+            _mean = self._mean + 0.
 
         if not self.is_reparameterized:
             _mean.stop_gradient = True
             _std.stop_gradient = True
-        print(_mean)
 
         sample_ = paddle.randn(name='sample', shape=_shape, dtype=self.dtype) * _std + _mean
         sample_ = paddle.cast( sample_, dtype=_mean.dtype)
         sample_.stop_gradient = False
         self.sample_cache = sample_
-        assert(sample_.shape[0] == n_samples)
+        if n_samples > 1:
+            assert(sample_.shape[0] == n_samples)
 
         return sample_
 
@@ -79,7 +81,7 @@ class FoldNormal(Distribution):
         if sample is None:
             sample = self.sample_cache
 
-        if len(sample.shape) > len(self._std.shape):
+        if len(sample.shape) > len(self._mean.shape):
             n_samples = sample.shape[0]
             _len = len(self._std.shape)
             _std = paddle.tile(self._std, repeat_times=[n_samples, *_len*[1]])
