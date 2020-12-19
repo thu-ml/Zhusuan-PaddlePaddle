@@ -212,7 +212,7 @@ def test_1parameter_sample_shape_same(
         samples = dist.sample(n_samples)
         test_class.assertEqual(samples.shape, target_shape)
 
-    _test_dynamic([2, 3], 1, [1, 2, 3])
+    _test_dynamic([2, 3], 1, [2, 3])
     if not only_one_sample:
         _test_dynamic([1, 3], 2, [2, 1, 3])
         _test_dynamic([2, 1, 5], 3, [3, 2, 1, 5])
@@ -230,7 +230,7 @@ def test_2parameter_sample_shape_same(
         test_class.assertEqual(samples.shape, target_shape)
 
     # TODO: Sample_shape will be [n_samples, batch_shape]
-    _test_dynamic([2, 3], [2, 1], 1, [1, 2, 3])
+    _test_dynamic([2, 3], [2, 1], 1, [ 2, 3])
     _test_dynamic([1, 3], [2, 1], 2, [2, 2, 3])
     _test_dynamic([2, 1, 5], [1, 3, 1], 3, [3, 2, 3, 5])
     # try:

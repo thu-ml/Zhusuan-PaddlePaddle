@@ -108,30 +108,33 @@ class TestDistributions(unittest.TestCase):
 
         # sample
         samples_1 = dist.sample()
-        self.assertListEqual(samples_1.numpy().tolist(),
-                             np.ones((2, 3, 4, 5), dtype=np.int32).tolist())
+        self.assertListEqual(samples_1.numpy().flatten().astype(np.int32).tolist(),
+                                np.ones((2, 3, 4, 5), dtype=np.int32).flatten().tolist())
+        # self.assertListEqual(samples_1.numpy().tolist(),
+        #                      np.ones((2, 3, 4, 5), dtype=np.int32).tolist())
         for n in [1, 2]:
             samples_2 = dist.sample(n_samples=n)
-            self.assertListEqual(samples_2.numpy().tolist(),
-                                np.ones((n, 2, 3, 4, 5), dtype=np.int32).tolist())
+            self.assertListEqual(samples_2.numpy().flatten().astype(np.int32).tolist(),
+                                np.ones((n, 2, 3, 4, 5), dtype=np.int32).flatten().tolist())
 
         # log_prob
         given_1 = paddle.ones([2, 3, 4, 5])
         log_p_1 = dist.log_prob(given_1)
-        self.assertListEqual(log_p_1.numpy().tolist(), np.zeros((2)).tolist())
+        self.assertListEqual(log_p_1.numpy().astype(np.int32).tolist(),
+                             np.zeros((2)).tolist())
 
         try:
             dist.log_prob(paddle.ones([3, 3, 4, 5]))
         except:
-            raise ValueError("broadcast to match batch_shape \+ value_shape")
+            raise ValueError("broadcast to match batch_shape and value_shape")
 
         given_2 = paddle.ones([1, 2, 3, 4, 5])
         log_p_2 = dist.log_prob(given_2)
-        self.assertListEqual(log_p_2.numpy().tolist(), np.zeros((1, 2)).tolist())
+        self.assertListEqual(log_p_2.numpy().astype(np.int32).tolist(), np.zeros((1, 2)).tolist())
 
         given_3 = paddle.ones([1, 1, 2, 3, 4, 5])
         log_p_3 = dist.log_prob(given_3)
-        self.assertListEqual(log_p_3.numpy().tolist(), np.zeros((1, 1, 2)).tolist())
+        self.assertListEqual(log_p_3.numpy().astype(np.int32).tolist(), np.zeros((1, 1, 2)).tolist())
 
         # # prob
         # p_1 = dist.prob(given_1)
@@ -143,22 +146,20 @@ class TestDistributions(unittest.TestCase):
         # p_3 = dist.prob(given_3)
         # self.assertListEqual(p_3.numpy().tolist(), np.ones((1, 1, 2)).tolist())
 
-
         try:
             Dist(group_event_ndims=1)
         except:
             raise ValueError("has been deprecated")
 
+        # try:
+        #     dist2 = Dist(group_ndims=-1)
+        # except:
+        #     raise ValueError("must be non-negative")
 
-        group_ndims_1 = -1
-        with self.assertRaisesRegexp(ValueError,
-                                     "must be non-negative"):
-            dist2 = Dist(group_ndims=-1)
         try:
             dist2 = Dist(group_ndims=[1, 2])
         except:
-            TypeError("should be a scalar")
-
+            raise TypeError("should be a scalar")
 
         # shape not fully defined
         dist3 = Dist(shape_fully_defined=False)

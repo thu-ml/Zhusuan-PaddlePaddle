@@ -201,7 +201,7 @@ class TestNormal(unittest.TestCase):
         try:
             norm2.sample().numpy()
         except:
-            raise AttributeError("exp\(logstd\).*Tensor had Inf")
+            raise AttributeError("exp(logstd).*Tensor had Inf")
 
         norm3 = Normal(mean=paddle.ones([1, 2]),
                        std=paddle.to_tensor([[0.]]),
@@ -209,7 +209,7 @@ class TestNormal(unittest.TestCase):
         try:
             norm3.log_prob(paddle.to_tensor([0.])).numpy()
         except:
-            raise AttributeError("log\(std\).*Tensor had Inf")
+            raise AttributeError("log(std).*Tensor had Inf")
 
     def test_dtype(self):
         utils.test_dtype_2parameter(self, self._Normal_std)

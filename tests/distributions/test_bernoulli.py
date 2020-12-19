@@ -41,9 +41,9 @@ class TestBernoulli(unittest.TestCase):
     #     self.assertEqual(norm._value_shape().dtype, 'int32')
 
     ## TODO: Define the value shape and batch shape in Bernoulli module
-    # def test_batch_shape(self):
-    #     utils.test_batch_shape_1parameter(
-    #         self, Bernoulli, np.zeros, is_univariate=True)
+    def test_batch_shape(self):
+        utils.test_batch_shape_1parameter(
+            self, self._Bernoulli, np.zeros, is_univariate=True)
 
 
     def test_sample_shape(self):
@@ -60,15 +60,20 @@ class TestBernoulli(unittest.TestCase):
             given = np.array(given, np.float32)
 
             target_log_p = stats.bernoulli.logpmf(
-                given, 1. / (1. + np.exp(-logits)))
+                given, -logits+ 1e-8)
             target_p = stats.bernoulli.pmf(
-                given, 1. / (1. + np.exp(-logits)))
+                given, -logits+ 1e-8)
+            # target_log_p = stats.bernoulli.logpmf(
+            #     given, 1. / (1. + np.exp(-logits)))
+            # target_p = stats.bernoulli.pmf(
+            #     given, 1. / (1. + np.exp(-logits)))
 
             logits = paddle.to_tensor(logits)
             given = paddle.to_tensor(given)
 
             bernoulli = self._Bernoulli(logits)
             log_p = bernoulli.log_prob(given)
+            target_log_p = target_log_p.astype(log_p.numpy().dtype)
             np.testing.assert_allclose(np.around(log_p.numpy(), decimals=6),
                                        np.around(target_log_p, decimals=6), rtol=1e-03)
 
@@ -92,7 +97,6 @@ class TestBernoulli(unittest.TestCase):
         utils.test_dtype_1parameter_discrete(self, self._Bernoulli)
 
     def test_distribution_shape(self):
-        param = paddle.ones([1])
+        param = paddle.ones([1])*.8
         distribution = self._Bernoulli(param)
         utils.test_and_save_distribution_img(distribution)
-

@@ -1,8 +1,10 @@
 import paddle
 import paddle.fluid as fluid
 import numpy as np
+from scipy import stats
 
 from .base import Distribution
+
 
 __all__ = [
     'Bernoulli',
@@ -23,27 +25,28 @@ class Bernoulli(Distribution):
                              group_ndims=group_ndims,
                              **kwargs)
         self._probs = kwargs['probs']
-
+        # self._dtype = self._probs.dtype #if self._probs.dtype != paddle.zeros([1], dtype=dtype)
+        # if (not type(dtype) is str) or dtype != 'float32':
+        #     self._dtype = dtype
     @property
     def probs(self):
         """The odds of probabilities of being 1."""
         return self._probs
 
+    def _batch_shape(self):
+        return self.probs.shape
 
     def _sample(self, n_samples=1, **kwargs):
+        if n_samples > 1:
+            sample_shape_ = np.concatenate([[n_samples], self.batch_shape], axis=0).tolist()
+            _probs = self._probs * paddle.ones(sample_shape_)
+        else:
+            _probs = self._probs
 
-        _probs = paddle.tile(self._probs, repeat_times=\
-                    [n_samples, *len(self._probs.shape)*[1]])
-
-        p = paddle.cast(paddle.nn.functional.sigmoid(_probs), dtype=self.param_dtype)
-        sample_shape_ = np.concatenate([[n_samples], self._probs.shape], axis=0).tolist()
-        alpha = paddle.cast(paddle.uniform( shape=sample_shape_, min=0, max=1 ),
-                              dtype=self.param_dtype)
-        sample_ = paddle.cast(paddle.cast(paddle.less_than(alpha, p),
-                                          dtype=self.param_dtype), dtype=self.dtype)
-
-        ## TODO: Check old codes here
-        # sample_ = paddle.bernoulli(_probs)
+        # _probs = paddle.cast(_probs, self.param_dtype)
+        _probs *= paddle.cast(_probs <= 1, self.param_dtype )
+        sample_ = paddle.bernoulli(_probs)
+        sample_ = paddle.cast(sample_, dtype=self.dtype)
 
         self.sample_cache = sample_
         return sample_
@@ -54,26 +57,19 @@ class Bernoulli(Distribution):
             sample = self.sample_cache
 
         ## Log Prob
-        #logits = paddle.log(self._probs /(1-self._probs))
-        #log_prob_sample = -fluid.layers.sigmoid_cross_entropy_with_logits(label=sample, x=logits) # check mark
-
         if len(sample.shape) > len(self._probs.shape):
-            _probs = paddle.tile(self._probs, repeat_times=\
-                        [sample.shape[0], *len(self._probs.shape)*[1]])
+            sample_shape_ = np.concatenate([[sample.shape[0]], self.batch_shape], axis=0).tolist()
+            _probs = self._probs * paddle.ones(sample_shape_, dtype=self.param_dtype)
         else:
             _probs = self._probs
 
-        sigma = 1./(1. + paddle.exp(-_probs) )
-        log_prob = sample * paddle.log(sigma ) \
-                            + (1 - sample) * paddle.log(1 - sigma )
-        # log_prob = -fluid.layers.sigmoid_cross_entropy_with_logits(_probs, label=sample)
+        # add 1e-8 for numerical stable
+        _probs = _probs + 1e-8
+        log_prob = sample * paddle.log( _probs ) \
+                            + (1 - sample) * paddle.log(1 - _probs )
+        log_prob = paddle.cast(log_prob, dtype=self.dtype)
 
-        ## TODO: Check old codes here
-        # ## add 1e-8 for numerical stable
-        # log_prob = sample * paddle.log(_probs + 1e-8) \
-        #                     + (1 - sample) * paddle.log(1 - _probs + 1e-8)
-        #
-        # # log_prob = fluid.layers.reduce_sum(log_prob, dim=-1)
+        # log_prob = fluid.layers.reduce_sum(log_prob, dim=-1)
 
         return log_prob
 

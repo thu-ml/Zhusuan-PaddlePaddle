@@ -182,6 +182,7 @@ class Distribution(object):
         The shape showing how many independent inputs (which we call batches)
         are fed into the distribution. For batch inputs, the shape of a
         generated sample is ``batch_shape + value_shape``.
+        We borrow this concept from `tf.contrib.distributions`.
         """
         return self._batch_shape()
 
@@ -218,9 +219,11 @@ class Distribution(object):
             samples to draw from the distribution.
         :return: A Tensor of samples.
         """
+        #print('n_samples: ', n_samples)
         if n_samples is None:
             samples = self._sample(n_samples=1)
-            return fluid.layers.squeeze(samples, axes=[0])
+            #return fluid.layers.squeeze(samples, axes=[0])
+            return samples
         elif isinstance(n_samples, int):
             return self._sample(n_samples)
         else:
