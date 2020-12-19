@@ -1,2 +1,0 @@
-sphinxcontrib-bibtex>=0.3.6
-paddlepaddle==2.0.0rc0
