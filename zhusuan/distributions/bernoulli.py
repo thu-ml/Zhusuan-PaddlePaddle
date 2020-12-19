@@ -1,10 +1,8 @@
 import paddle
 import paddle.fluid as fluid
 import numpy as np
-from scipy import stats
 
 from .base import Distribution
-
 
 __all__ = [
     'Bernoulli',
@@ -72,6 +70,3 @@ class Bernoulli(Distribution):
         # log_prob = fluid.layers.reduce_sum(log_prob, dim=-1)
 
         return log_prob
-
-
-
