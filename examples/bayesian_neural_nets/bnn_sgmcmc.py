@@ -110,7 +110,7 @@ def main():
     net = Net(layer_sizes, lb_samples)
     print('parameters length: ', len(net.parameters()))
 
-    lr = 1e-2
+    lr = 1e-3
     model = mcmc.SGLD(lr)
 
     # do train

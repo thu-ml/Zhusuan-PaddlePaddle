@@ -29,9 +29,15 @@ class SGLD(paddle.nn.Layer):
 
             self._latent = {k:v.tensor for k,v in bn.nodes.items() if k not in observed.keys()}
             self._latent_k = self._latent.keys()
-            #self._var_list = [self._latent[k] for k in self._latent_k]
-            self._var_list = [fluid.layers.zeros(self._latent[k].shape, dtype='float32') for k in self._latent_k]
+            self._var_list = [self._latent[k] for k in self._latent_k]
+            #self._var_list = [fluid.layers.zeros(self._latent[k].shape, dtype='float32') 
+                #for k in self._latent_k]
             sample_ = dict(zip(self._latent_k, self._var_list))
+
+            for i in range(len(self._var_list)):
+                self._var_list[i] = self._var_list[i].detach()
+                self._var_list[i].stop_gradient = False
+
             return sample_
 
         for s in range(step):

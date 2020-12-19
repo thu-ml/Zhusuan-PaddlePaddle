@@ -24,10 +24,12 @@ class Normal(Distribution):
                              group_ndims=group_ndims,
                              **kwargs)
         try:
-            self._std = kwargs['std']
+            self._std = paddle.cast(paddle.to_tensor([kwargs['std']]), self.dtype) \
+                if type(kwargs['std']) in [type(1.), type(1)] else kwargs['std']
             self._logstd = paddle.log(self._std)
         except:
-            self._logstd = kwargs['logstd']
+            self._logstd = paddle.cast(paddle.to_tensor([kwargs['logstd']]), self.dtype) \
+                if type(kwargs['logstd']) in [type(1.), type(1)] else kwargs['logstd']
             self._std = paddle.exp(self._logstd)
 
         self._mean = kwargs['mean']
@@ -54,7 +56,7 @@ class Normal(Distribution):
     def _sample(self, n_samples=1, **kwargs):
 
         if n_samples > 1:
-            _shape = fluid.layers.shape(self._std)
+            _shape = fluid.layers.shape(self._mean)
             _shape = fluid.layers.concat([paddle.to_tensor([n_samples], dtype="int32"), _shape])
             _len = len(self._std.shape)
             _std = paddle.tile(self._std, repeat_times=[n_samples, *_len*[1]])
@@ -88,7 +90,7 @@ class Normal(Distribution):
         if sample is None:
             sample = self.sample_cache
 
-        if len(sample.shape) > len(self._std.shape):
+        if len(sample.shape) > len(self._mean.shape):
             n_samples = sample.shape[0]
             _len = len(self._std.shape)
             _std = paddle.tile(self._std, repeat_times=[n_samples, *_len*[1]]) 
