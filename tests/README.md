@@ -13,7 +13,6 @@
 
 ## Installation
 
-
 Here we used pytest tool, to install the package, run this in terminal :
 ```
 pip install pytest==6.1.2
