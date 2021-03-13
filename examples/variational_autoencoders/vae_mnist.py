@@ -31,7 +31,7 @@ class Generator(BayesianNet):
         self.act2 = paddle.nn.ReLU()
 
         self.fc2_ = paddle.nn.Linear(500, 28*28)
-        self.act2_ = paddle.nn.Sigmoid()
+        # self.act2_ = paddle.nn.Sigmoid()
 
     def forward(self, observed):
         self.observe(observed)
@@ -53,9 +53,9 @@ class Generator(BayesianNet):
                                  reduce_sum_dims=[1])
         #print(z)
 
-        x_probs = self.act2_(self.fc2_(self.act2(self.fc2(self.act1(self.fc1(z))))))
-
-        self.cache['x_mean'] = (x_probs, 0,)
+        # x_probs = self.act2_(self.fc2_(self.act2(self.fc2(self.act1(self.fc1(z))))))
+        x_probs = self.fc2_(self.act2(self.fc2(self.act1(self.fc1(z)))))
+        self.cache['x_mean'] = (paddle.nn.functional.sigmoid(x_probs), 0,)
 
         sample_x = self.sn('Bernoulli',
                            name='x', 

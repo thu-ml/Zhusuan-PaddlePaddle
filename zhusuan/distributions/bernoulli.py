@@ -23,6 +23,7 @@ class Bernoulli(Distribution):
                              group_ndims=group_ndims,
                              **kwargs)
         self._probs = kwargs['probs']
+        self._probs = paddle.nn.functional.sigmoid(self._probs)
         # self._dtype = self._probs.dtype #if self._probs.dtype != paddle.zeros([1], dtype=dtype)
         # if (not type(dtype) is str) or dtype != 'float32':
         #     self._dtype = dtype

@@ -55,8 +55,8 @@ class ELBO(paddle.nn.Layer):
 
     def reinforce(self, logpxz, logqz, reduce_mean=True, baseline=None, variance_reduction=True, decay=0.8):
         l_signal = logpxz - logqz
+        l_signal.stop_gradient = True
         baseline_cost = None
-
         if variance_reduction:
             if baseline is not None:
                 baseline_cost = 0.5 * paddle.square(
@@ -67,13 +67,15 @@ class ELBO(paddle.nn.Layer):
             l_signal = l_signal - baseline
 
             # TODO: extend to non-scalar
-            bc = fluid.layers.reduce_mean(l_signal)
+            if len(l_signal.shape) > 0 and reduce_mean:
+                bc = fluid.layers.reduce_mean(l_signal)
+            else:
+                bc = l_signal
             # Moving average
             self.moving_mean -= (1 - decay) * (self.moving_mean - bc)
             l_signal -= self.moving_mean
 
         cost = -logpxz - l_signal.detach() * logqz
-
         if len(logqz.shape) > 0 and reduce_mean:
             cost = fluid.layers.reduce_mean(cost)
 
