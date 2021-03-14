@@ -108,17 +108,17 @@ def main():
     z_dim = 40
     x_dim = 28 * 28 * 1
 
-    lr = 0.0001
+    lr = 0.001
 
     # Create the network
     generator = Generator(x_dim, z_dim, batch_size)
     variational = Variational(x_dim, z_dim, batch_size)
     baseline_net = Baseline(x_dim)
-    model = ELBO(generator, variational, estimator='sgvb')
+    model = ELBO(generator, variational, estimator='reinforce')
 
     clip = fluid.clip.GradientClipByNorm(clip_norm=1.0)
     optimizer = paddle.optimizer.Adam(learning_rate=lr,
-                                      parameters=model.parameters(), grad_clip=clip)
+                                      parameters=model.parameters())
 
     x_train, t_train, x_valid, t_valid, x_test, t_test = load_mnist_realval()
     # do train
@@ -129,10 +129,10 @@ def main():
         for step in range(num_batches):
             x = paddle.to_tensor(x_train[step * batch_size:min((step + 1) * batch_size, len_)])
             x = paddle.reshape(x, [-1, x_dim])
-            # cx = baseline_net(x)
-            # cost, baseline_cost = model({'x': x}, baseline=cx)
-            # loss = cost + baseline_cost
-            loss = model({'x': x})
+            cx = baseline_net(x)
+            cost, baseline_cost = model({'x': x}, baseline=cx)
+            loss = cost + baseline_cost
+            # loss = model({'x': x})
             loss.backward()
             optimizer.step()
             optimizer.clear_grad()

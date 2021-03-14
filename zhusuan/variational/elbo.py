@@ -18,7 +18,9 @@ class ELBO(paddle.nn.Layer):
         self.estimator = estimator
         if estimator == 'reinforce':
             mm = paddle.zeros(shape=[], dtype='float32')
+            ls = paddle.zeros(shape=[], dtype='int32')
             self.register_buffer('moving_mean', mm)
+            self.register_buffer('local_step', ls)
 
     def log_joint(self, nodes):
         log_joint_ = None
@@ -54,6 +56,7 @@ class ELBO(paddle.nn.Layer):
         return -elbo
 
     def reinforce(self, logpxz, logqz, reduce_mean=True, baseline=None, variance_reduction=True, decay=0.8):
+        decay_tensor = paddle.ones(shape=[], dtype='float32') * decay
         l_signal = logpxz - logqz
         l_signal.stop_gradient = True
         baseline_cost = None
@@ -67,12 +70,16 @@ class ELBO(paddle.nn.Layer):
             l_signal = l_signal - baseline
 
             # TODO: extend to non-scalar
-            if len(l_signal.shape) > 0 and reduce_mean:
+            if len(logqz.shape) > 0 and reduce_mean:
                 bc = fluid.layers.reduce_mean(l_signal)
             else:
                 bc = l_signal
             # Moving average
-            self.moving_mean -= (1 - decay) * (self.moving_mean - bc)
+            self.moving_mean -= (self.moving_mean - bc) * (1.0 - decay)
+            self.local_step += 1
+            bias_factor = 1 - paddle.pow(decay_tensor, self.local_step)
+            self.moving_mean /= bias_factor
+
             l_signal -= self.moving_mean
 
         cost = -logpxz - l_signal.detach() * logqz
