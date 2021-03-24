@@ -87,6 +87,6 @@ class ELBO(paddle.nn.Layer):
             cost = fluid.layers.reduce_mean(cost)
 
         if baseline_cost is not None:
-            return cost, baseline_cost
+            return cost, baseline_cost, (logpxz - logqz)
         else:
             return cost

@@ -130,7 +130,7 @@ def main():
             x = paddle.to_tensor(x_train[step * batch_size:min((step + 1) * batch_size, len_)])
             x = paddle.reshape(x, [-1, x_dim])
             cx = baseline_net(x)
-            cost, baseline_cost = model({'x': x}, baseline=cx)
+            cost, baseline_cost, lower_bound = model({'x': x}, baseline=cx)
             loss = cost + baseline_cost
             # loss = model({'x': x})
             loss.backward()
@@ -138,8 +138,8 @@ def main():
             optimizer.clear_grad()
 
             if (step + 1) % 100 == 0:
-                print("Epoch[{}/{}], Step [{}/{}], Loss: {:.4f}"
-                      .format(epoch + 1, epoch_size, step + 1, num_batches, float(loss.numpy())))
+                print("Epoch[{}/{}], Step [{}/{}], Lower_bound: {:.4f}"
+                      .format(epoch + 1, epoch_size, step + 1, num_batches, float(lower_bound.numpy())))
 
     # eval
     batch_x = x_test[0:batch_size]

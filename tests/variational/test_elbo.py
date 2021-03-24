@@ -85,7 +85,7 @@ class TestEvidenceLowerBound(unittest.TestCase):
             analytic_lower_bound = -_kl_normal_normal(paddle.to_tensor(0.), paddle.to_tensor(1.), _x_mean, _x_std)\
                 .numpy()
             # print(lower_bound, analytic_lower_bound)
-            self.assertAlmostEqual(lower_bound[0], analytic_lower_bound[0], 3)
+            self.assertAlmostEqual(lower_bound[0], analytic_lower_bound[0], delta=1e-3)
         _check_elbo(0., 1.)
         _check_elbo(2., 3.)
 
