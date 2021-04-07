@@ -63,11 +63,10 @@ class Bernoulli(Distribution):
             _probs = self._probs
 
         # add 1e-8 for numerical stable
-        _probs = _probs + 1e-8
-        log_prob = sample * paddle.log( _probs ) \
-                            + (1 - sample) * paddle.log(1 - _probs )
+        # _probs = _probs + 1e-8
+        log_prob = sample * paddle.log( _probs + 1e-8 ) \
+                            + (1 - sample) * paddle.log(1 - _probs + 1e-8 )
         log_prob = paddle.cast(log_prob, dtype=self.dtype)
 
         # log_prob = fluid.layers.reduce_sum(log_prob, dim=-1)
-
         return log_prob

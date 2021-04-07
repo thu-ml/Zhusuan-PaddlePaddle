@@ -14,6 +14,8 @@ from zhusuan.variational.elbo import ELBO
 
 from utils import load_mnist_realval, save_img, standardize
 
+import numpy as np
+
 device = paddle.set_device('gpu')
 paddle.disable_static(device)
 
@@ -43,7 +45,6 @@ class Generator(BayesianNet):
                                  name='z',
                                  probs=z_probs,
                                  reparameterize=False,
-                                 reduce_mean_dims=[0],
                                  reduce_sum_dims=[1])
         # x_probs = self.act3(self.fc3(self.bn2(self.fc2(self.bn1(self.fc1(z))))))
         x_probs = self.fc3(self.bn2(self.fc2(self.bn1(self.fc1(z)))))
@@ -53,7 +54,6 @@ class Generator(BayesianNet):
                                         name='x',
                                         probs=x_probs,
                                         reparameterize=False,
-                                        reduce_mean_dims=[0],
                                         reduce_sum_dims=[1])
         return self
 
@@ -64,7 +64,6 @@ class Variational(BayesianNet):
         self.x_dim = x_dim
         self.z_dim = z_dim
         self.batch_size = batch_size
-
         self.fc1 = paddle.nn.Linear(x_dim, 500, bias_attr=False)
         self.bn1 = paddle.nn.BatchNorm(500, act='relu')
         self.fc2 = paddle.nn.Linear(500, 500, bias_attr=False)
@@ -75,13 +74,12 @@ class Variational(BayesianNet):
     def forward(self, observed):
         self.observe(observed)
         x = self.observed['x']
-        # TODO: Find out why z_probs == nan during train
         z_probs = self.fc3(self.bn2(self.fc2(self.bn1(self.fc1(x)))))
+
         z = self.stochastic_node('Bernoulli',
                                  name='z',
                                  probs=z_probs,
                                  reparameterize=True,
-                                 reduce_mean_dims=[0],
                                  reduce_sum_dims=[1])
         return self
 
@@ -95,8 +93,7 @@ class Baseline(paddle.nn.Layer):
 
     def forward(self, x):
         lc_x = self.fc2(self.act1(self.fc1(x)))
-        lc_x = fluid.layers.reduce_mean(lc_x)
-        lc_x = fluid.layers.squeeze(lc_x, [0])
+        lc_x = fluid.layers.squeeze(lc_x, [-1])
         return lc_x
 
 
@@ -114,7 +111,7 @@ def main():
     generator = Generator(x_dim, z_dim, batch_size)
     variational = Variational(x_dim, z_dim, batch_size)
     baseline_net = Baseline(x_dim)
-    model = ELBO(generator, variational, estimator='reinforce')
+    model = ELBO(generator, variational, estimator='sgvb')
 
     clip = fluid.clip.GradientClipByNorm(clip_norm=1.0)
     optimizer = paddle.optimizer.Adam(learning_rate=lr,
@@ -126,20 +123,20 @@ def main():
     num_batches = math.ceil(len_ / batch_size)
     model.train()
     for epoch in range(epoch_size):
+        lbs = []
+        np.random.shuffle(x_train)
         for step in range(num_batches):
             x = paddle.to_tensor(x_train[step * batch_size:min((step + 1) * batch_size, len_)])
             x = paddle.reshape(x, [-1, x_dim])
-            cx = baseline_net(x)
-            cost, baseline_cost, lower_bound = model({'x': x}, baseline=cx)
-            loss = cost + baseline_cost
-            # loss = model({'x': x})
+            # cx = baseline_net(x)
+            # loss, lower_bound = model({'x': x}, baseline=cx)
+            loss = model({'x': x})
             loss.backward()
             optimizer.step()
             optimizer.clear_grad()
-
-            if (step + 1) % 100 == 0:
-                print("Epoch[{}/{}], Step [{}/{}], Lower_bound: {:.4f}"
-                      .format(epoch + 1, epoch_size, step + 1, num_batches, float(lower_bound.numpy())))
+            lbs.append(loss.numpy())
+        print("Epoch[{}/{}], Lower_bound: {:.4f}"
+              .format(epoch + 1, epoch_size, np.mean(np.array(lbs))))
 
     # eval
     batch_x = x_test[0:batch_size]
@@ -156,9 +153,9 @@ def main():
         os.mkdir(result_fold)
 
     print([sample.shape, batch_x.shape])
-    save_img(batch_x, os.path.join(result_fold, 'origin_x_bernoulli_reinforce.png'))
-    save_img(sample, os.path.join(result_fold, 'reconstruct_x_bernoulli_reinforce.png'))
-    save_img(sample_gen, os.path.join(result_fold, 'sample_x_bernoulli_reinforce.png'))
+    save_img(batch_x, os.path.join(result_fold, 'origin_x_bernoulli_sgvb.png'))
+    save_img(sample, os.path.join(result_fold, 'reconstruct_x_bernoulli_sgvb.png'))
+    save_img(sample_gen, os.path.join(result_fold, 'sample_x_bernoulli_sgvb.png'))
 
 
 if __name__ == '__main__':

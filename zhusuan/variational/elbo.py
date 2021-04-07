@@ -17,10 +17,11 @@ class ELBO(paddle.nn.Layer):
             raise NotImplementedError()
         self.estimator = estimator
         if estimator == 'reinforce':
-            mm = paddle.zeros(shape=[], dtype='float32')
-            ls = paddle.zeros(shape=[], dtype='int32')
+            mm = paddle.zeros(shape=[1], dtype='float32')
+            ls = paddle.zeros(shape=[1], dtype='int32')
             self.register_buffer('moving_mean', mm)
             self.register_buffer('local_step', ls)
+            self.moving_mean.stop_gradient = True
 
     def log_joint(self, nodes):
         log_joint_ = None
@@ -56,7 +57,7 @@ class ELBO(paddle.nn.Layer):
         return -elbo
 
     def reinforce(self, logpxz, logqz, reduce_mean=True, baseline=None, variance_reduction=True, decay=0.8):
-        decay_tensor = paddle.ones(shape=[], dtype='float32') * decay
+        decay_tensor = paddle.ones(shape=[1], dtype='float32') * decay
         l_signal = logpxz - logqz
         l_signal.stop_gradient = True
         baseline_cost = None
@@ -68,7 +69,6 @@ class ELBO(paddle.nn.Layer):
                 if len(logqz.shape) > 0 and reduce_mean:
                     baseline_cost = fluid.layers.reduce_mean(baseline_cost)
             l_signal = l_signal - baseline
-
             # TODO: extend to non-scalar
             if len(logqz.shape) > 0 and reduce_mean:
                 bc = fluid.layers.reduce_mean(l_signal)
@@ -79,14 +79,17 @@ class ELBO(paddle.nn.Layer):
             self.local_step += 1
             bias_factor = 1 - paddle.pow(decay_tensor, self.local_step)
             self.moving_mean /= bias_factor
-
-            l_signal -= self.moving_mean
-
-        cost = -logpxz - l_signal.detach() * logqz
-        if len(logqz.shape) > 0 and reduce_mean:
-            cost = fluid.layers.reduce_mean(cost)
-
+            l_signal -= self.moving_mean.detach()
+        l_signal = l_signal.detach()
+        l_signal.stop_gradient = True
+        cost = -logpxz - l_signal * logqz
         if baseline_cost is not None:
-            return cost, baseline_cost, (logpxz - logqz)
+            if len(logqz.shape) > 0 and reduce_mean:
+                loss = fluid.layers.reduce_mean(cost + baseline_cost)
+            else:
+                loss = cost + baseline_cost
+            return loss, fluid.layers.reduce_mean(logpxz - logqz)
         else:
+            if len(logqz.shape) > 0 and reduce_mean:
+                cost = fluid.layers.reduce_mean(cost)
             return cost
