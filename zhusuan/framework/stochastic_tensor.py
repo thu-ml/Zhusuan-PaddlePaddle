@@ -124,8 +124,8 @@ class StochasticTensor(object):
         """
         return self.tensor.shape
 
-    def log_prob(self,sample=None):
-        _log_probs = self._dist.log_prob(sample)
+    def log_prob(self,sample=None, **kwargs):
+        _log_probs = self._dist.log_prob(sample, **kwargs)
 
         if self._reduce_mean_dims:
             _log_probs = fluid.layers.reduce_mean(_log_probs, self._reduce_mean_dims, keep_dim=True)

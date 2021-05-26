@@ -4,7 +4,6 @@
 import paddle
 import paddle.fluid as fluid
 
-
 __all__ = [
     'Distribution',
 ]
@@ -84,7 +83,7 @@ class Distribution(object):
         self._is_continuous = is_continuous
         self._is_reparameterized = is_reparameterized
         self._use_path_derivative = use_path_derivative
-        
+
         if isinstance(group_ndims, int):
             if group_ndims < 0:
                 raise ValueError("group_ndims must be non-negative.")
@@ -207,7 +206,7 @@ class Distribution(object):
         """
         raise NotImplementedError()
 
-    def sample(self, n_samples=None):
+    def sample(self, n_samples=None, **kwargs):
         """
         sample(n_samples=None)
         Return samples from the distribution. When `n_samples` is None (by
@@ -219,18 +218,17 @@ class Distribution(object):
             samples to draw from the distribution.
         :return: A Tensor of samples.
         """
-        #print('n_samples: ', n_samples)
+        # print('n_samples: ', n_samples)
         if n_samples is None:
-            samples = self._sample(n_samples=1)
-            #return fluid.layers.squeeze(samples, axes=[0])
+            samples = self._sample(n_samples=1, **kwargs)
+            # return fluid.layers.squeeze(samples, axes=[0])
             return samples
         elif isinstance(n_samples, int):
-            return self._sample(n_samples)
+            return self._sample(n_samples, **kwargs)
         else:
             pass
 
-
-    def _sample(self, n_samples):
+    def _sample(self, n_samples, **kwargs):
         """
         Private method for subclasses to rewrite the :meth:`sample` method.
         """
@@ -258,7 +256,7 @@ class Distribution(object):
         """
         pass
 
-    def log_prob(self, given):
+    def log_prob(self, given, **kwargs):
         """
         log_prob(given)
         Compute log probability density (mass) function at `given` value.
@@ -268,16 +266,15 @@ class Distribution(object):
         :return: A Tensor of shape ``(... + )batch_shape[:-group_ndims]``.
         """
 
-        #given = self._check_input_shape(given)
-        log_p = self._log_prob(given)
+        # given = self._check_input_shape(given)
+        log_p = self._log_prob(given, **kwargs)
 
         if self._group_ndims > 0:
             return fluid.layers.reduce_sum(log_p, dim=[i for i in range(-self._group_ndims, 0)])
         else:
             return log_p
 
-
-    def _log_prob(self, given):
+    def _log_prob(self, given, **kwargs):
         """
         Private method for subclasses to rewrite the :meth:`log_prob` method.
         """
