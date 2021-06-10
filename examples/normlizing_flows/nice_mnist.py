@@ -17,7 +17,7 @@ paddle.disable_static(device)
 
 
 class NICE(BayesianNet):
-    def __init__(self, num_coupling, in_out_dim, mid_dim, hidden):
+    def __init__(self, num_coupling, in_out_dim, mid_dim, hidden, mask_config):
         super().__init__()
         self.in_out_dim = in_out_dim
         masks = get_coupling_mask(in_out_dim, 1, num_coupling)
@@ -63,7 +63,8 @@ def main():
     model = NICE(num_coupling=coupling,
                  in_out_dim=full_dim,
                  mid_dim=mid_dim,
-                 hidden=hidden)
+                 hidden=hidden,
+                 mask_config=mask_config)
 
     optimizer = paddle.optimizer.Adam(learning_rate=lr, parameters=model.parameters(), epsilon=1e-4)
 
