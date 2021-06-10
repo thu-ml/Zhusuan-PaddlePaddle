@@ -1,8 +1,6 @@
 import os
 import math
 import gzip
-
-import paddle
 import progressbar
 import six
 import numpy as np
@@ -11,20 +9,19 @@ from six.moves import cPickle as pickle
 from PIL import Image
 from matplotlib import pyplot as plt
 
-from paddle.io import Dataset, TensorDataset, DataLoader
+from paddle.io import Dataset
 
 pbar = None
 examples_dir = os.path.dirname(os.path.abspath(__file__))
 data_dir = os.path.join(examples_dir, "data")
 data_path = os.path.join(data_dir, "mnist.pkl.gz")
 
-
 def standardize(data_train, data_test):
     """
-    Standardize a datasets to have zero mean and unit standard deviation.
+    Standardize a dataset to have zero mean and unit standard deviation.
     :param data_train: 2-D Numpy array. Training data.
     :param data_test: 2-D Numpy array. Test data.
-    :return: (train_set, test_set, mean, std), The standardized datasets and
+    :return: (train_set, test_set, mean, std), The standardized dataset and
         their mean and standard deviation before processing.
     """
     std = np.std(data_train, 0, keepdims=True)
@@ -75,12 +72,10 @@ def show_progress(block_num, block_size, total_size):
         pbar.finish()
         pbar = None
 
-
 def download_dataset(url, path):
     print('Downloading data from %s' % url)
-    # urllib.request.urlretrieve(url, path, show_progress)
+    #urllib.request.urlretrieve(url, path, show_progress)
     urllib.request.urlretrieve(url, path)
-
 
 def to_one_hot(x, depth):
     """
@@ -95,24 +90,17 @@ def to_one_hot(x, depth):
     ret[np.arange(x.shape[0]), x] = 1
     return ret
 
-
-def logit(x, alpha):
-    x_ = alpha + (1 - 2 * alpha) * x
-    return np.log(x_ / (1 - x_))
-
-
-def load_mnist_realval(path=data_path, one_hot=True, dequantify=False, logit_transform=False):
+def load_mnist_realval(path=data_path, one_hot=True, dequantify=False):
     """
-    Loads the real valued MNIST datasets.
+    Loads the real valued MNIST dataset.
 
-    :param path: Path to the datasets file.
+    :param path: Path to the dataset file.
     :param one_hot: Whether to use one-hot representation for the labels.
     :param dequantify:  Whether to add uniform noise to dequantify the data
         following (Uria, 2013).
 
-    :return: The MNIST datasets.
+    :return: The MNIST dataset.
     """
-    alpha = 1.0e-6
     if not os.path.isfile(path):
         data_dir = os.path.dirname(path)
         if not os.path.exists(os.path.dirname(path)):
@@ -139,15 +127,10 @@ def load_mnist_realval(path=data_path, one_hot=True, dequantify=False, logit_tra
                                      size=x_valid.shape).astype('float32')
         x_test += np.random.uniform(0, 1. / 256,
                                     size=x_test.shape).astype('float32')
-    if logit_transform:
-        x_train = logit(x_train, alpha)
-        x_valid = logit(x_valid, alpha)
-        x_test = logit(x_test, alpha)
-
     n_y = t_train.max() + 1
     t_transform = (lambda x: to_one_hot(x, n_y)) if one_hot else (lambda x: x)
     return x_train, t_transform(t_train), x_valid, t_transform(t_valid), \
-           x_test, t_transform(t_test)
+        x_test, t_transform(t_test)
 
 
 def save_img(data, name):
@@ -160,20 +143,20 @@ def save_img(data, name):
         num: number of images
     """
 
-    size = int(data.shape[1] ** .5)
+    size = int(data.shape[1]**.5)
     num = data.shape[0]
     col = int(num / 8)
     row = 8
 
-    imgs = Image.new('L', (size * col, size * row))
+    imgs = Image.new('L', (size*col, size*row))
     for i in range(num):
-        j = i / 8
+        j = i/8
         img_data = data[i]
-        img_data = np.resize(img_data, (size, size))
+        img_data  = np.resize(img_data, (size, size))
         img_data = img_data * 255
         img_data = img_data.astype(np.uint8)
         im = Image.fromarray(img_data, 'L')
-        imgs.paste(im, (int(j) * size, (i % 8) * size))
+        imgs.paste(im, (int(j) * size , (i % 8) * size))
     imgs.save(name)
 
 
@@ -199,7 +182,6 @@ class MNISTDataset(Dataset):
     def __len__(self):
         return len(self.data)
 
-
 def load_uci_boston_housing(path, dtype=np.float32):
     if not os.path.isfile(path):
         data_dir = os.path.dirname(path)
@@ -224,61 +206,3 @@ def load_uci_boston_housing(path, dtype=np.float32):
     x_test, y_test = data[index_test, :-1], data[index_test, -1]
 
     return x_train, y_train, x_val, y_val, x_test, y_test
-
-
-def fetch_dataloaders(dataset_name, batch_size, dequantify=True, logit_transform=True):
-    if dataset_name in ['MNIST']:
-        x_train, y_train, x_valid, y_valid, x_test, y_test = load_mnist_realval(dequantify=dequantify, logit_transform=logit_transform)
-        lam = 1.0e-6
-
-        # join train and val data again
-        x_train = np.concatenate((x_train, x_valid), axis=0).astype(np.float32)
-        y_train = np.concatenate((y_train, y_valid), axis=0).astype(np.float32)
-
-        # construct datasets
-        train_dataset = TensorDataset([paddle.to_tensor(x_train), paddle.to_tensor(y_train)])
-        test_dataset = TensorDataset([paddle.to_tensor(x_test), paddle.to_tensor(y_test)])
-
-        n_dims = (1, 28, 28)
-        label_size = 10
-
-    else:
-        raise ValueError('Unrecognized datasets')
-
-    train_dataset.input_dims = n_dims
-    train_dataset.input_size = int(np.prod(n_dims))
-    train_dataset.label_size = label_size
-    train_dataset.lam = lam
-
-    test_dataset.input_dims = n_dims
-    test_dataset.input_size = int(np.prod(n_dims))
-    test_dataset.label_size = label_size
-    test_dataset.lam = lam
-
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=2)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=2)
-
-    return train_loader, test_loader
-
-
-@paddle.no_grad()
-def save_image(tensor, filename, nrow=8, padding=2, pad_value=0):
-    nmaps = tensor.shape[0]
-    xmaps = min(nrow, nmaps)
-    ymaps = math.ceil(float(nmaps) / xmaps)
-    height, width = int(tensor.shape[2] + padding), int(tensor.shape[3] + padding)
-    num_channels = tensor.shape[1]
-    grid = Image.new('L', (width * xmaps, height * ymaps))
-    k = 0
-    tensor = (tensor * 255 + 0.5).clip(0, 255).transpose(perm=[0, 2, 3, 1])
-    for y in range(ymaps):
-        for x in range(xmaps):
-            if k >= nmaps:
-                break
-            data = tensor[k].numpy()
-            data = np.resize(data, (tensor.shape[1], tensor.shape[2]))
-            data = data.astype(np.uint8)
-            im = Image.fromarray(data, 'L')
-            grid.paste(im, (width * x, height * y))
-            k = k + 1
-    grid.save(filename)
