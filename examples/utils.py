@@ -19,6 +19,10 @@ data_dir = os.path.join(examples_dir, "data")
 data_path = os.path.join(data_dir, "mnist.pkl.gz")
 
 
+def check_dir(path):
+    if not os.path.exists(path):
+        os.makedirs(path, exist_ok=True)
+
 def standardize(data_train, data_test):
     """
     Standardize a datasets to have zero mean and unit standard deviation.
@@ -255,8 +259,8 @@ def fetch_dataloaders(dataset_name, batch_size, dequantify=True, logit_transform
     test_dataset.label_size = label_size
     test_dataset.lam = lam
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=2)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=2)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
     return train_loader, test_loader
 
