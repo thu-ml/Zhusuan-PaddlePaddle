@@ -1,15 +1,18 @@
 import math
 import os
+import sys
 import time
 
 import paddle
 import paddle.io
 import numpy as np
 
+
+sys.path.append('..')
 from zhusuan.transforms.invertible import *
 from zhusuan.framework import BayesianNet
 
-from examples.utils import fetch_dataloaders, save_image
+from utils import fetch_dataloaders, save_image, check_dir
 
 
 device = paddle.set_device('gpu')
@@ -48,7 +51,7 @@ class NICE(BayesianNet):
 
 def main():
     batch_size = 200
-    epoch_size = 1
+    epoch_size = 10
     sample_size = 64
     coupling = 4
     mask_config = 1.
@@ -87,7 +90,9 @@ def main():
     with paddle.no_grad():
         samples = model.nodes['x'].dist.sample(shape=[sample_size, full_dim])
         samples = paddle.reshape(samples, shape=[-1, 1, 28, 28])
-        save_image(samples, './results/NICE/sample-NICE-1.png')
+        path = os.path.join(os.getcwd(), 'results', 'NICE')
+        check_dir(path)
+        save_image(samples, os.path.join(path, 'sample-NICE.png'))
 
 
 if __name__ == '__main__':

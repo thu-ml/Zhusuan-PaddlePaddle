@@ -19,7 +19,7 @@ class Scaling(InvertibleTransform):
         super().__init__()
         self.log_scale = self.create_parameter(shape=[1, dim],
                                            default_initializer=paddle.nn.initializer.Constant(value=0.))
-        self.add_parameter("log_scale", self.scale)
+        self.add_parameter("log_scale", self.log_scale)
 
     def _forward(self, x, **kwargs):
         log_det_J = self.log_scale.clone()
